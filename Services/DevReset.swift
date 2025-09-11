@@ -15,3 +15,4 @@ enum DevReset {
         NotificationManager.shared.cancelReminders()
     }
 }
+ // Test
