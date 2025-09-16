@@ -40,6 +40,7 @@ struct WeeklyPlannerView: View {
                                         Text(a)
                                     }
                                     .toggleStyle(.switch)
+                                    .tint(AtlasTheme.neon)
                                 }
                             }
                             .padding(16)
@@ -47,13 +48,11 @@ struct WeeklyPlannerView: View {
 
                             Legend()
 
-                            HStack(spacing: 12) {
-                                Button("Save Plan") { PlanStore.save(plan) }
-                                    .buttonStyle(AtlasButtonStyle())
-
-                                Button("Apply to Reminders") { applyReminders() }
-                                    .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
-                            }
+                            PlannerActions(
+                                save: { PlanStore.save(plan) },
+                                apply: applyReminders
+                            )
+                            .padding(.top, 6)
                         }
                         .padding(20)
                     }
@@ -96,24 +95,57 @@ private struct DaySelector: View {
     @Binding var selected: Int
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(days, id: \.0) { d in
-                Button(action: { selected = d.0 }) {
-                    Text(d.1)
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(
-                            selected == d.0
-                            ? AtlasTheme.gradient
-                            : LinearGradient(colors: [.clear], startPoint: .top, endPoint: .bottom)
-                        )
-                        .clipShape(Capsule())
-                        .overlay(Capsule().strokeBorder(.white.opacity(0.15)))
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(days, id: \.0) { d in
+                    Button(action: { selected = d.0 }) {
+                        Text(d.1.uppercased())
+                            .font(.caption.weight(.heavy))
+                            .foregroundStyle(selected == d.0 ? Color.white : .secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .frame(minWidth: 48)
+                            .background(
+                                Capsule()
+                                    .fill(selected == d.0 ? AtlasTheme.gradient : AtlasTheme.cardFill)
+                            )
+                            .overlay(
+                                Capsule()
+                                    .stroke(selected == d.0 ? AtlasTheme.border : Color.white.opacity(0.12), lineWidth: 1)
+                            )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
+    }
+}
+
+private struct PlannerActions: View {
+    let save: () -> Void
+    let apply: () -> Void
+
+    var body: some View {
+        ViewThatFits {
+            HStack(spacing: 12) {
+                actionButtons
+            }
+
+            VStack(spacing: 12) {
+                actionButtons
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        Button("Save Plan", action: save)
+            .buttonStyle(AtlasButtonStyle())
+
+        Button("Apply to Reminders", action: apply)
+            .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
     }
 }
 
