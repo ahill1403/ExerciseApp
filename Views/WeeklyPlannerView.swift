@@ -109,11 +109,20 @@ private struct DaySelector: View {
                             .frame(minWidth: 48)
                             .background(
                                 Capsule()
-                                    .fill(selected == d.0 ? AtlasTheme.gradient : AtlasTheme.cardFill)
+                                    .fill(
+                                        selected == d.0
+                                        ? AnyShapeStyle(AtlasTheme.gradient)
+                                        : AnyShapeStyle(AtlasTheme.cardFill)
+                                    )
                             )
                             .overlay(
                                 Capsule()
-                                    .stroke(selected == d.0 ? AtlasTheme.border : Color.white.opacity(0.12), lineWidth: 1)
+                                    .stroke(
+                                        selected == d.0
+                                        ? AnyShapeStyle(AtlasTheme.border)
+                                        : AnyShapeStyle(Color.white.opacity(0.12)),
+                                        lineWidth: 1
+                                    )
                             )
                     }
                     .buttonStyle(.plain)
