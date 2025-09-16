@@ -19,9 +19,15 @@ struct AtlasCard: View {
                 .font(.title2.bold())
                 .foregroundStyle(.white)
                 .padding(12)
-                .background(accent.opacity(0.9), in: Circle())
-                .overlay(Circle().strokeBorder(.white.opacity(0.15)))
-                .glow(accent, radius: 6)
+                .background(
+                    Circle().fill(
+                        LinearGradient(colors: [accent.opacity(0.9), accent.opacity(0.6)],
+                                       startPoint: .topLeading,
+                                       endPoint: .bottomTrailing)
+                    )
+                )
+                .overlay(Circle().strokeBorder(Color.white.opacity(0.2)))
+                .glow(accent, radius: 10)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.headline)

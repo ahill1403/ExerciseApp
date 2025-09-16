@@ -108,7 +108,7 @@ struct ContentView: View {
                                             .font(.subheadline.weight(.semibold))
                                             .padding(.horizontal, 14)
                                             .padding(.vertical, 10)
-                                            .background(AtlasTheme.gradient.opacity(0.22), in: Capsule())
+                                            .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -373,7 +373,7 @@ private struct QuickActionPill: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(AtlasTheme.border, lineWidth: 1)
         )
-        .shadow(color: AtlasTheme.neon.opacity(0.18), radius: 10, x: 0, y: 6)
+        .shadow(color: Color.black.opacity(0.06), radius: 10, x: 0, y: 6)
     }
 }
 
@@ -402,7 +402,7 @@ private struct MiniWorkoutRow: View {
         HStack(spacing: 12) {
             Image(systemName: "figure.strengthtraining.traditional")
                 .padding(10)
-                .background(AtlasTheme.gradient.opacity(0.25), in: Circle())
+                .background(AtlasTheme.gradient.opacity(0.18), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.template).font(.headline)
                 Text("\(session.date.formatted(date: .abbreviated, time: .shortened))")
@@ -450,7 +450,7 @@ private struct Chip: View {
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.22)))
+            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.18)))
     }
 }
 

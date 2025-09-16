@@ -184,7 +184,7 @@ private struct LegendChip: View {
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.25)))
+            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.18)))
     }
 }
 

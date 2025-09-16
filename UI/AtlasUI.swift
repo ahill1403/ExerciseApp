@@ -9,19 +9,21 @@ import SwiftUI
 
 enum AtlasTheme {
     // Core palette
-    static let midnight = Color(red: 12.0/255.0, green: 14.0/255.0, blue: 19.0/255.0)
-    static let forge = Color(red: 24.0/255.0, green: 27.0/255.0, blue: 34.0/255.0)
-    static let steel = Color(red: 47.0/255.0, green: 52.0/255.0, blue: 60.0/255.0)
+    static let sky = Color(red: 246.0/255.0, green: 249.0/255.0, blue: 253.0/255.0)
+    static let mist = Color(red: 229.0/255.0, green: 236.0/255.0, blue: 247.0/255.0)
+    static let pebble = Color(red: 210.0/255.0, green: 220.0/255.0, blue: 235.0/255.0)
 
-    static var bgBase: Color { midnight }
-    static var bgElevated: Color { forge }
+    static var bgBase: Color { sky }
+    static var bgElevated: Color { .white }
 
-    static let neon = Color(red: 0.82, green: 0.13, blue: 0.16)      // primary accent (forge red)
-    static let magenta = Color(red: 0.91, green: 0.32, blue: 0.12)   // ember orange
-    static let amber = Color(red: 0.98, green: 0.67, blue: 0.21)     // highlight gold
+    static let neon = Color(red: 0.22, green: 0.55, blue: 0.96)      // energetic primary
+    static let magenta = Color(red: 0.16, green: 0.75, blue: 0.72)   // balancing teal
+    static let amber = Color(red: 0.99, green: 0.69, blue: 0.28)     // warm highlight
 
     static var canvas: LinearGradient {
-        LinearGradient(colors: [midnight, forge], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(colors: [Color.white, sky, mist],
+                       startPoint: .topLeading,
+                       endPoint: .bottomTrailing)
     }
 
     static var gradient: LinearGradient {
@@ -29,17 +31,17 @@ enum AtlasTheme {
     }
 
     static var gradientAlt: LinearGradient {
-        LinearGradient(colors: [magenta, amber], startPoint: .top, endPoint: .bottomTrailing)
+        LinearGradient(colors: [magenta, amber], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     static var cardFill: LinearGradient {
-        LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+        LinearGradient(colors: [Color.white.opacity(0.95), Color.white.opacity(0.7)],
                        startPoint: .topLeading,
                        endPoint: .bottomTrailing)
     }
 
     static var border: LinearGradient {
-        LinearGradient(colors: [Color.white.opacity(0.25), Color.white.opacity(0.05)],
+        LinearGradient(colors: [Color.white.opacity(0.8), pebble.opacity(0.35)],
                        startPoint: .topLeading,
                        endPoint: .bottomTrailing)
     }
@@ -61,19 +63,18 @@ extension View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(AtlasTheme.border, lineWidth: 1.2)
         )
-        .shadow(color: AtlasTheme.neon.opacity(0.22), radius: 18, x: 0, y: 12)
+        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 12)
     }
 
     func glow(_ color: Color, radius: CGFloat = 16) -> some View {
-        shadow(color: color.opacity(0.5), radius: radius, x: 0, y: 0)
-            .shadow(color: color.opacity(0.2), radius: radius * 1.5, x: 0, y: 0)
+        shadow(color: color.opacity(0.22), radius: radius, x: 0, y: radius * 0.25)
     }
 }
 
 // MARK: - Background
 
 struct NeonMotionBackground: View {
-    @State private var rotate = false
+    @State private var animate = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -81,33 +82,38 @@ struct NeonMotionBackground: View {
             Rectangle()
                 .fill(AtlasTheme.canvas)
 
-            AngularGradient(
-                gradient: Gradient(colors: [AtlasTheme.neon.opacity(0.8),
-                                            AtlasTheme.magenta.opacity(0.7),
-                                            AtlasTheme.steel.opacity(0.4),
-                                            AtlasTheme.neon.opacity(0.8)]),
-                center: .center
-            )
-            .blur(radius: 200)
-            .opacity(0.65)
-            .scaleEffect(1.45)
-            .rotationEffect(.degrees(rotate ? 360 : 0))
-            .animation(reduceMotion ? nil : .linear(duration: 50).repeatForever(autoreverses: false), value: rotate)
-            .blendMode(.overlay)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [AtlasTheme.neon.opacity(0.28), .clear],
+                        center: .topTrailing,
+                        startRadius: 40,
+                        endRadius: 360
+                    )
+                )
+                .offset(x: animate ? 40 : -20, y: -160)
+                .blur(radius: 120)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 20).repeatForever(autoreverses: true), value: animate)
 
-            LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
-                .blendMode(.multiply)
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [AtlasTheme.magenta.opacity(0.25), .clear],
+                        center: .bottomLeading,
+                        startRadius: 40,
+                        endRadius: 320
+                    )
+                )
+                .offset(x: animate ? -30 : 50, y: 220)
+                .blur(radius: 140)
+                .animation(reduceMotion ? nil : .easeInOut(duration: 24).repeatForever(autoreverses: true), value: animate)
 
-            RadialGradient(
-                colors: [AtlasTheme.magenta.opacity(0.25), .clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 520
-            )
-            .allowsHitTesting(false)
+            LinearGradient(colors: [Color.white.opacity(0.6), Color.clear], startPoint: .top, endPoint: .bottom)
+                .blendMode(.screen)
         }
         .ignoresSafeArea()
-        .onAppear { rotate = true }
+        .allowsHitTesting(false)
+        .onAppear { animate = true }
     }
 }
 
@@ -129,7 +135,7 @@ struct AtlasButtonStyle: ButtonStyle {
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.72), value: configuration.isPressed)
-            .glow(AtlasTheme.neon, radius: 10)
+            .shadow(color: Color.black.opacity(0.12), radius: 12, x: 0, y: 8)
     }
 }
 
@@ -142,10 +148,10 @@ struct AtlasBadge: View {
             .padding(12)
             .background(
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .overlay(Circle().strokeBorder(AtlasTheme.gradient.opacity(0.7)))
+                    .fill(AtlasTheme.cardFill)
+                    .overlay(Circle().strokeBorder(AtlasTheme.gradient.opacity(0.6)))
             )
-            .glow(AtlasTheme.magenta, radius: 6)
+            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 }
 

@@ -122,7 +122,7 @@ private struct WorkoutRow: View {
         HStack(spacing: 12) {
             Image(systemName: "figure.strengthtraining.traditional")
                 .padding(10)
-                .background(AtlasTheme.gradient.opacity(0.25), in: Circle())
+                .background(AtlasTheme.gradient.opacity(0.18), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.template).font(.headline)
                 Text("\(session.date.formatted(date: .abbreviated, time: .shortened))")
