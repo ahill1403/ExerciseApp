@@ -21,9 +21,17 @@ final class HealthKitManager {
     
     func save(_ session: WorkoutSession) async throws {
         guard HKHealthStore.isHealthDataAvailable() else { return }
+
         let start = session.date
-        let end = session.duration.map { start.addingTimeInterval($0) } ?? start
-        let workout = HKWorkout(activityType: .functionalStrengthTraining, start: start, end: end)
-        try await store.save(workout)
+        let end   = session.duration.map { start.addingTimeInterval($0) } ?? start
+
+        let config = HKWorkoutConfiguration()
+        config.activityType = .functionalStrengthTraining
+
+        // Build and finish a simple workout
+        let builder = HKWorkoutBuilder(healthStore: store, configuration: config, device: nil)
+        try await builder.beginCollection(at: start)
+        try await builder.endCollection(at: end)
+        _ = try await builder.finishWorkout()
     }
 }

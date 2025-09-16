@@ -60,9 +60,10 @@ struct WeeklyPlannerView: View {
                 )
                 .navigationTitle("Plan")
         }
-        .onChange(of: plan) { newPlan in
+        .onChange(of: plan) { _, newPlan in
             PlanStore.save(newPlan)
         }
+
         .alert(
             "Heads up",
             isPresented: Binding(get: { alertMessage != nil }, set: { _ in alertMessage = nil })
