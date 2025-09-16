@@ -12,6 +12,8 @@ enum DevReset {
         let ud = UserDefaults.standard
         ud.set(false, forKey: "hasCompletedOnboarding")
         ud.removeObject(forKey: "userProfile")
+        ud.removeObject(forKey: "workoutHistory")
+        ud.removeObject(forKey: "weeklyPlan")
         NotificationManager.shared.cancelReminders()
     }
 }

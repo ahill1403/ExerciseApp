@@ -81,6 +81,8 @@ struct EditProfileView: View {
                     Section {
                         Button {
                             vm.save()
+                            // Mirror weekly goal to keep Home stats aligned even if the VM wasn't updated yet.
+                            UserDefaults.standard.set(vm.daysPerWeek, forKey: "weeklyGoal")
                             dismiss()
                         } label: {
                             Text("Save Changes").frame(maxWidth: .infinity)
@@ -96,14 +98,17 @@ struct EditProfileView: View {
             .navigationTitle("Edit Profile")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Save") { vm.save(); dismiss() }
+                    Button("Save") {
+                        vm.save()
+                        UserDefaults.standard.set(vm.daysPerWeek, forKey: "weeklyGoal")
+                        dismiss()
+                    }
                 }
             }
-            .alert("Heads up", isPresented: .constant(vm.alertMessage != nil), actions: {
-                Button("OK") { vm.alertMessage = nil }
-            }, message: {
-                Text(vm.alertMessage ?? "")
-            })
+            .alert("Heads up",
+                   isPresented: .constant(vm.alertMessage != nil),
+                   actions: { Button("OK") { vm.alertMessage = nil } },
+                   message: { Text(vm.alertMessage ?? "") })
         }
     }
 }

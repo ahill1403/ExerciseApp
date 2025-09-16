@@ -1,44 +1,36 @@
-//
-//  WorkoutStore.swift
-//  AtlasFit
-//
-//  Created by Aaron Hill on 9/11/25.
-//
-
 import Foundation
 
 final class WorkoutStore {
     static let shared = WorkoutStore()
     private let key = "workoutHistory"
-
+    
     func load() -> [WorkoutSession] {
         guard let data = UserDefaults.standard.data(forKey: key) else { return [] }
         return (try? JSONDecoder().decode([WorkoutSession].self, from: data)) ?? []
     }
-
-    func save(_ sessions: [WorkoutSession]) {
-        if let data = try? JSONEncoder().encode(sessions) {
+    
+    func add(_ session: WorkoutSession) {
+        var items = load()
+        items.append(session)
+        if let data = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(data, forKey: key)
         }
     }
-
-    func add(_ session: WorkoutSession) {
-        var all = load()
-        all.append(session)
-        save(all)
+    
+    func workoutsThisWeek(firstWeekday: Int = 1) -> Int {
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = firstWeekday // 1 = Sunday
+        let today = Date()
+        let weekday = cal.component(.weekday, from: today)
+        let delta = (weekday - firstWeekday + 7) % 7
+        let startOfWeek = cal.startOfDay(for: cal.date(byAdding: .day, value: -delta, to: today)!)
+        return load().filter { $0.date >= startOfWeek }.count
     }
-
-    // MARK: - Stats
-    func workoutsThisWeek() -> Int {
-        let all = load()
-        let cal = Calendar.current
-        let startOfWeek = cal.date(from: cal.dateComponents([.yearForWeekOfYear, .weekOfYear], from: Date())) ?? Date()
-        return all.filter { $0.date >= startOfWeek }.count
-    }
-
+    
     func currentStreakDays() -> Int {
-        let cal = Calendar.current
-        let allByDay = Dictionary(grouping: load()) { cal.startOfDay(for: $0.date) }
+        let cal = Calendar(identifier: .gregorian)
+        let all = load().map { cal.startOfDay(for: $0.date) }
+        let allByDay = Dictionary(grouping: all, by: { $0 })
         var streak = 0
         var day = cal.startOfDay(for: Date())
         while allByDay[day] != nil {
@@ -48,7 +40,7 @@ final class WorkoutStore {
         }
         return streak
     }
-
+    
     func lastWorkoutDate() -> Date? {
         load().sorted(by: { $0.date > $1.date }).first?.date
     }

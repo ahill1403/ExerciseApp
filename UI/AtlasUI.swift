@@ -8,89 +8,78 @@ import SwiftUI
 // MARK: - Theme
 
 enum AtlasTheme {
-    // Base canvas honors Light/Dark automatically for readability
-    static var bgBase: Color { Color(uiColor: .systemBackground) }
-    static var bgElevated: Color { Color(uiColor: .secondarySystemBackground) }
+static var bgBase: Color { Color(uiColor: .systemBackground) }
+static var bgElevated: Color { Color(uiColor: .secondarySystemBackground) }
 
-    static let neon    = Color(hue: 0.56, saturation: 0.85, brightness: 0.95) // cyan
-    static let magenta = Color(hue: 0.86, saturation: 0.80, brightness: 0.95)
-    static let amber   = Color(hue: 0.08, saturation: 0.85, brightness: 1.0)
+static let neon = Color(hue: 0.56, saturation: 0.85, brightness: 0.95)
+static let magenta = Color(hue: 0.86, saturation: 0.80, brightness: 0.95)
+static let amber = Color(hue: 0.08, saturation: 0.85, brightness: 1.0)
 
-    // Subtle base gradient for the canvas (prevents “pure black” look)
-    static var canvas: LinearGradient {
-        LinearGradient(
-            colors: [bgBase, bgElevated],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    }
-
-    static var gradient: LinearGradient {
-        LinearGradient(colors: [neon, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
-    }
-
-    static var gradientAlt: LinearGradient {
-        LinearGradient(colors: [amber, neon], startPoint: .top, endPoint: .bottomTrailing)
-    }
+static var canvas: LinearGradient {
+LinearGradient(colors: [bgBase, bgElevated], startPoint: .topLeading, endPoint: .bottomTrailing)
+}
+static var gradient: LinearGradient {
+LinearGradient(colors: [neon, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
+}
+static var gradientAlt: LinearGradient {
+LinearGradient(colors: [amber, neon], startPoint: .top, endPoint: .bottomTrailing)
+}
 }
 
 // MARK: - Helpers & Modifiers
 
 extension View {
-    func gradientForeground(_ gradient: LinearGradient = AtlasTheme.gradient) -> some View {
-        overlay(gradient).mask(self)
-    }
+func gradientForeground(_ gradient: LinearGradient = AtlasTheme.gradient) -> some View {
+overlay(gradient).mask(self)
+}
 
-    // Slightly more opaque than before for better contrast
-    func glassCard(cornerRadius: CGFloat = 20) -> some View {
-        background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .strokeBorder(AtlasTheme.gradient.opacity(0.55), lineWidth: 1)
-            )
-            .shadow(color: AtlasTheme.neon.opacity(0.10), radius: 14, x: 0, y: 8)
-    }
+func glassCard(cornerRadius: CGFloat = 20) -> some View {
+background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+.overlay(
+RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+.strokeBorder(AtlasTheme.gradient.opacity(0.55), lineWidth: 1)
+)
+.shadow(color: AtlasTheme.neon.opacity(0.10), radius: 14, x: 0, y: 8)
+}
 
-    func glow(_ color: Color, radius: CGFloat = 16) -> some View {
-        shadow(color: color.opacity(0.5), radius: radius, x: 0, y: 0)
-            .shadow(color: color.opacity(0.2), radius: radius * 1.5, x: 0, y: 0)
-    }
+func glow(_ color: Color, radius: CGFloat = 16) -> some View {
+shadow(color: color.opacity(0.5), radius: radius, x: 0, y: 0)
+.shadow(color: color.opacity(0.2), radius: radius * 1.5, x: 0, y: 0)
+}
 }
 
 // MARK: - Background
 
 struct NeonMotionBackground: View {
-    @State private var rotate = false
+@State private var rotate = false
+@Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
-        ZStack {
-            // Brighter, readable base
-            AtlasTheme.canvas
+var body: some View {
+ZStack {
+AtlasTheme.canvas
 
-            // Energetic color field (a bit stronger than before)
-            AngularGradient(
-                gradient: Gradient(colors: [AtlasTheme.neon, AtlasTheme.magenta, AtlasTheme.amber, AtlasTheme.neon]),
-                center: .center
-            )
-            .blur(radius: 180)
-            .opacity(0.5)
-            .scaleEffect(1.35)
-            .rotationEffect(.degrees(rotate ? 360 : 0))
-            .animation(.linear(duration: 60).repeatForever(autoreverses: false), value: rotate)
-            .blendMode(.screen)
+AngularGradient(
+gradient: Gradient(colors: [AtlasTheme.neon, AtlasTheme.magenta, AtlasTheme.amber, AtlasTheme.neon]),
+center: .center
+)
+.blur(radius: 180)
+.opacity(0.5)
+.scaleEffect(1.35)
+.rotationEffect(.degrees(rotate ? 360 : 0))
+.animation(reduceMotion ? nil : .linear(duration: 60).repeatForever(autoreverses: false), value: rotate)
+.blendMode(.screen)
 
-            // Soft “reading light” so text on top pops
-            RadialGradient(
-                colors: [Color.white.opacity(0.10), .clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 600
-            )
-            .allowsHitTesting(false)
-        }
-        .ignoresSafeArea()
-        .onAppear { rotate = true }
-    }
+RadialGradient(
+colors: [Color.white.opacity(0.10), .clear],
+center: .topLeading,
+startRadius: 0,
+endRadius: 600
+)
+.allowsHitTesting(false)
+}
+.ignoresSafeArea()
+.onAppear { rotate = true }
+}
 }
 
 // MARK: - Core Components

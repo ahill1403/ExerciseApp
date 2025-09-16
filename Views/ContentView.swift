@@ -63,15 +63,20 @@ struct ContentView: View {
 
                         // Dynamic tiles (now sourced from Progress)
                         HStack(spacing: 16) {
-                            SummaryTile(title: "This Week", value: "\(progressVM.workoutsThisWeek) / \(weeklyGoal)", detail: "Workouts")
-                            SummaryTile(title: "Streak", value: "\(progressVM.streakDays)", detail: progressVM.streakDays == 1 ? "Day" : "Days")
+                            SummaryTile(title: "This Week",
+                                        value: "\(progressVM.workoutsThisWeek) / \(weeklyGoal)",
+                                        detail: "Workouts")
+                            SummaryTile(title: "Streak",
+                                        value: "\(progressVM.streakDays)",
+                                        detail: progressVM.streakDays == 1 ? "Day" : "Days")
                         }
 
                         // Recent Workouts (mini)
                         VStack(alignment: .leading, spacing: 12) {
                             SectionHeader(title: "Recent Workouts", subtitle: "Last 3 sessions")
                             if progressVM.sessions.isEmpty {
-                                EmptyStateCard(title: "No workouts yet", subtitle: "Start a session to see your progress.")
+                                EmptyStateCard(title: "No workouts yet",
+                                               subtitle: "Start a session to see your progress.")
                             } else {
                                 ForEach(progressVM.sessions.prefix(3)) { session in
                                     MiniWorkoutRow(session: session)
@@ -114,9 +119,9 @@ struct ContentView: View {
             .navigationTitle("AtlasFit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // Profile button (top-left)
+                // Profile button (top-left) → Edit Profile
                 ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink { ProfilePlaceholderView() } label: {
+                    NavigationLink { EditProfileView() } label: {
                         Image(systemName: "person.crop.circle")
                             .imageScale(.large)
                     }
@@ -155,7 +160,7 @@ struct ContentView: View {
         let startOfThisWeek = cal.startOfDay(for: cal.date(byAdding: .day, value: -daysFromSunday, to: today)!)
 
         var flags: [Bool] = []
-        for i in 0..<7 { // Sunday -> Saturday
+        for i in 0..<7 {
             if let d = cal.date(byAdding: .day, value: i, to: startOfThisWeek) {
                 flags.append(byDay.contains(cal.startOfDay(for: d)))
             }
@@ -245,7 +250,7 @@ private struct WeekDots: View {
     let flags: [Bool] // Sunday → Saturday
 
     private var symbols: [String] {
-        Calendar.current.shortWeekdaySymbols.map { String($0.prefix(1)) } // Sun..Sat first letters
+        Calendar.current.shortWeekdaySymbols.map { String($0.prefix(1)) }
     }
 
     var body: some View {
@@ -253,7 +258,10 @@ private struct WeekDots: View {
             ForEach(Array(flags.enumerated()), id: \.offset) { idx, on in
                 VStack(spacing: 6) {
                     Circle()
-                        .fill(on ? AtlasTheme.gradient : LinearGradient(colors: [.secondary.opacity(0.3), .secondary.opacity(0.2)], startPoint: .top, endPoint: .bottom))
+                        .fill(on
+                              ? AtlasTheme.gradient
+                              : LinearGradient(colors: [.secondary.opacity(0.3), .secondary.opacity(0.2)],
+                                               startPoint: .top, endPoint: .bottom))
                         .frame(width: 16, height: 16)
                         .overlay(Circle().strokeBorder(.white.opacity(0.12)))
                     Text(symbols[idx])
@@ -377,37 +385,7 @@ private struct Chip: View {
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(
-                Capsule().fill(AtlasTheme.gradient.opacity(0.22))
-            )
-    }
-}
-
-// MARK: - Profile Placeholder
-
-struct ProfilePlaceholderView: View {
-    var body: some View {
-        List {
-            Section("Account") {
-                NavigationLink("My Account") { Text("Account details coming soon") }
-                NavigationLink("Edit Profile") { Text("Profile editor coming soon") }
-            }
-            Section("Goals & Preferences") {
-                NavigationLink("Weekly Goal") { Text("Adjust weekly workout target") }
-                NavigationLink("Notifications") { Text("Notification settings") }
-            }
-            Section("Connected Apps") {
-                NavigationLink("HealthKit") { Text("Manage Health permissions") }
-            }
-            Section("Support") {
-                NavigationLink("Help & FAQ") { Text("Help center") }
-                NavigationLink("Privacy & Terms") { Text("Legal") }
-            }
-            Section {
-                Button(role: .destructive) { /* sign out hook */ } label: { Text("Sign Out") }
-            }
-        }
-        .navigationTitle("Profile")
+            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.22)))
     }
 }
 

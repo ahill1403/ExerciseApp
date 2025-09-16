@@ -12,6 +12,16 @@ struct StartWorkoutView: View {
     @StateObject private var vm = StartWorkoutViewModel()
     @State private var showFinishAlert = false
 
+    // Inline edit state
+    @State private var editExerciseID: UUID? = nil
+    @State private var editSetIndex: Int? = nil
+    @State private var editReps: Int = 8
+    @State private var editWeight: Double = 0
+    @State private var editUnits: Units = .lbs
+    @State private var showEditSheet = false
+
+    private let gridCols: [GridItem] = [GridItem(.flexible()), GridItem(.flexible())]
+
     var body: some View {
         ZStack {
             NeonMotionBackground()
@@ -30,21 +40,29 @@ struct StartWorkoutView: View {
                     Button("Cancel") { vm.reset(); dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Finish") { showFinishAlert = true }
+                    HStack(spacing: 12) {
+                        Button("Autofill last") { autofillFromLast() }
+                        Button("Finish") { showFinishAlert = true }
+                    }
                 }
             }
         }
         .alert("Finish Workout?", isPresented: $showFinishAlert) {
-            Button("Save", role: .none) {
-                vm.finish()
-                dismiss()
-            }
+            Button("Save", role: .none) { vm.finish(); dismiss() }
             Button("Keep Logging", role: .cancel) { }
-        } message: {
-            Text("Your session will be saved to Progress.")
-        }
+        } message: { Text("Your session will be saved to Progress.") }
         .sheet(isPresented: $vm.showAddExercise) {
             AddExerciseSheet(name: $vm.newExerciseName) { vm.addExercise() }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditSetSheet(reps: $editReps, weight: $editWeight, units: $editUnits) {
+                if let exID = editExerciseID,
+                   let i = editSetIndex,
+                   let idx = vm.exercises.firstIndex(where: { $0.id == exID }) {
+                    vm.exercises[idx].sets[i] = SetEntry(reps: editReps, weight: editWeight, units: editUnits)
+                }
+            }
+            .presentationDetents([.medium])
         }
     }
 
@@ -57,11 +75,9 @@ struct StartWorkoutView: View {
                     .gradientForeground()
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 12) {
+                LazyVGrid(columns: gridCols, spacing: 12) {
                     ForEach(vm.templates, id: \.self) { t in
-                        Button {
-                            vm.start(template: t)
-                        } label: {
+                        Button { vm.start(template: t) } label: {
                             HStack {
                                 Image(systemName: "bolt.fill")
                                 Text(t)
@@ -69,7 +85,8 @@ struct StartWorkoutView: View {
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity)
-                            .background(AtlasTheme.gradient.opacity(0.20), in: RoundedRectangle(cornerRadius: 16))
+                            .background(AtlasTheme.gradient.opacity(0.20),
+                                        in: RoundedRectangle(cornerRadius: 16))
                         }
                         .buttonStyle(.plain)
                     }
@@ -110,24 +127,40 @@ struct StartWorkoutView: View {
 
             ForEach(vm.exercises) { exercise in
                 Section(exercise.name) {
-                    ForEach(exercise.sets) { set in
+                    let enumeratedSets = Array(exercise.sets.enumerated())
+
+                    ForEach(enumeratedSets, id: \.offset) { index, set in
                         HStack {
-                            Text("Set \(exercise.sets.firstIndex(of: set)! + 1)")
+                            Text("Set \(index + 1)")
                             Spacer()
                             Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button("Edit") {
+                                editExerciseID = exercise.id
+                                editSetIndex = index
+                                editReps = set.reps
+                                editWeight = set.weight
+                                editUnits = set.units
+                                showEditSheet = true
+                            }
+                        }
                     }
+
                     AddSetRow {
-                        // show inline add UI
                         AddSetInline { reps, weight, units in
                             vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
                         }
                     }
+
                     Button(role: .destructive) {
                         vm.removeExercise(exercise.id)
-                    } label: { Text("Remove Exercise") }
+                    } label: {
+                        Text("Remove Exercise")
+                    }
                 }
                 .listRowBackground(Color.clear)
             }
@@ -135,6 +168,18 @@ struct StartWorkoutView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(.hidden)
         .background(.clear)
+    }
+
+    // MARK: - Autofill from last session (view-local, no VM change required)
+    private func autofillFromLast() {
+        guard let template = vm.selectedTemplate else { return }
+        let history = WorkoutStore.shared.load()
+        guard let last = history.last(where: { $0.template == template }) else { return }
+        vm.exercises = last.exercises.map { ex in
+            var copy = ExerciseEntry(name: ex.name)
+            copy.sets = ex.sets.map { SetEntry(reps: $0.reps, weight: $0.weight, units: $0.units) }
+            return copy
+        }
     }
 }
 
@@ -154,9 +199,15 @@ private struct AddExerciseSheet: View {
             }
             .navigationTitle("Add Exercise")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") { onAdd(); dismiss() }.disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Add") {
+                        onAdd()
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -166,9 +217,7 @@ private struct AddExerciseSheet: View {
 private struct AddSetRow<Content: View>: View {
     var content: () -> Content
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            content()
-        }
+        VStack(alignment: .leading, spacing: 8) { content() }
     }
 }
 
@@ -192,7 +241,42 @@ private struct AddSetInline: View {
             .frame(width: 80)
             Button {
                 onAdd(reps, weight, units)
-            } label: { Image(systemName: "plus.circle.fill").font(.title3) }
+            } label: {
+                Image(systemName: "plus.circle.fill").font(.title3)
+            }
+        }
+    }
+}
+
+private struct EditSetSheet: View {
+    @Binding var reps: Int
+    @Binding var weight: Double
+    @Binding var units: Units
+    let onSave: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Stepper("Reps: \(reps)", value: $reps, in: 1...100)
+                HStack {
+                    Text("Weight")
+                    Spacer()
+                    TextField("0", value: $weight, format: .number)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .frame(width: 100)
+                    Picker("", selection: $units) {
+                        ForEach(Units.allCases) { Text($0.rawValue).tag($0) }
+                    }
+                    .frame(width: 90)
+                }
+            }
+            .navigationTitle("Edit Set")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Save", action: onSave)
+                }
+            }
         }
     }
 }
