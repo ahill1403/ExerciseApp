@@ -40,13 +40,11 @@ struct WeeklyPlannerView: View {
                                         Text(a)
                                     }
                                     .toggleStyle(.switch)
-                                    .tint(AtlasTheme.neon)
+                                    .tint(AtlasTheme.bluePrimary)
                                 }
                             }
                             .padding(16)
                             .glassCard(cornerRadius: 16)
-
-                            Legend()
 
                             PlannerActions(
                                 save: { PlanStore.save(plan) },
@@ -138,53 +136,18 @@ private struct PlannerActions: View {
 
     var body: some View {
         ViewThatFits {
-            HStack(spacing: 12) {
-                actionButtons
-            }
-
-            VStack(spacing: 12) {
-                actionButtons
-            }
+            HStack(spacing: 12) { actionButtons }
+            VStack(spacing: 12) { actionButtons }
         }
     }
 
     @ViewBuilder
     private var actionButtons: some View {
         Button("Save Plan", action: save)
-            .buttonStyle(AtlasButtonStyle())
+          .buttonStyle(AtlasButtonStyle())
 
         Button("Apply to Reminders", action: apply)
             .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
-    }
-}
-
-// MARK: - Legend
-
-private struct Legend: View {
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Legend").font(.headline)
-            Wrap(spacing: 8) {
-                LegendChip(text: "Mobility")
-                LegendChip(text: "Strength")
-                LegendChip(text: "Power")
-                LegendChip(text: "HIIT")
-                LegendChip(text: "NEAT/LISS")
-            }
-        }
-        .padding(12)
-        .glassCard(cornerRadius: 16)
-    }
-}
-
-private struct LegendChip: View {
-    let text: String
-    var body: some View {
-        Text(text)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.25)))
     }
 }
 

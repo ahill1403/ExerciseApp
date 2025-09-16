@@ -13,7 +13,7 @@ struct AtlasFitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootRouter()
+            AtlasTabRoot()
         }
     }
 }
@@ -24,9 +24,11 @@ private struct RootRouter: View {
     var body: some View {
         ZStack {
             if hasCompletedOnboarding {
-                ContentView()
+                // ✅ After onboarding, load the tabbed root (with center Home button)
+                AtlasTabRoot()
                     .transition(.opacity)
             } else {
+                // ✅ Your existing welcome/onboarding entry
                 WelcomeView()
                     .transition(.opacity)
             }

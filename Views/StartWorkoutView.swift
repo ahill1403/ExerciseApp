@@ -85,7 +85,7 @@ struct StartWorkoutView: View {
                             }
                             .padding(14)
                             .frame(maxWidth: .infinity)
-                            .background(AtlasTheme.gradient.opacity(0.20),
+                            .background(AtlasTheme.gradient.opacity(0.16),
                                         in: RoundedRectangle(cornerRadius: 16))
                         }
                         .buttonStyle(.plain)

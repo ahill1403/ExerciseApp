@@ -5,51 +5,112 @@
 
 import SwiftUI
 
-// MARK: - Theme
+// MARK: - Theme (Subtle Light Blue + Darker Blue Text)
 
 enum AtlasTheme {
-    // Core palette
-    static let midnight = Color(red: 12.0/255.0, green: 14.0/255.0, blue: 19.0/255.0)
-    static let forge = Color(red: 24.0/255.0, green: 27.0/255.0, blue: 34.0/255.0)
-    static let steel = Color(red: 47.0/255.0, green: 52.0/255.0, blue: 60.0/255.0)
+    // Background palette — very light, almost-white blues
+    static let sky     = Color(red: 245/255, green: 249/255, blue: 254/255)   // #F5F9FE
+    static let mist    = Color(red: 238/255, green: 244/255, blue: 252/255)   // #EEF4FC
+    static let pebble  = Color(red: 220/255, green: 230/255, blue: 245/255)   // soft divider
 
-    static var bgBase: Color { midnight }
-    static var bgElevated: Color { forge }
+    static var bgBase: Color { sky }      // app background
+    static var bgElevated: Color { .white }
 
-    static let neon = Color(red: 0.82, green: 0.13, blue: 0.16)      // primary accent (forge red)
-    static let magenta = Color(red: 0.91, green: 0.32, blue: 0.12)   // ember orange
-    static let amber = Color(red: 0.98, green: 0.67, blue: 0.21)     // highlight gold
+    // Brand blues (kept) + thematic text (slightly darker)
+    static let bluePrimary   = Color(red: 0.17, green: 0.47, blue: 0.92)      // #2B78EB
+    static let blueSecondary = Color(red: 0.13, green: 0.40, blue: 0.82)      // #2167D1
+    static let blueMuted     = Color(red: 0.10, green: 0.30, blue: 0.62)      // #1A4D9E
 
+    // NEW: thematic text color (darker, readable on light bg)
+    static let textPrimary = Color(red: 0.10, green: 0.30, blue: 0.62)        // same as blueMuted
+
+    // Back-compat aliases (ok to remove later)
+    static let neon: Color    = bluePrimary
+    static let magenta: Color = blueSecondary
+    static let amber: Color   = blueMuted
+
+    // Canvas: whisper-light blue wash (almost flat)
     static var canvas: LinearGradient {
-        LinearGradient(colors: [midnight, forge], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [Color.white, sky, mist],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
+    // Primary gradient for accents/text masking (now near-solid darker blue)
     static var gradient: LinearGradient {
-        LinearGradient(colors: [neon, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [
+                textPrimary.opacity(0.98),
+                blueSecondary.opacity(0.98)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
+    // Alt gradient (slightly different hue, still subtle)
     static var gradientAlt: LinearGradient {
-        LinearGradient(colors: [magenta, amber], startPoint: .top, endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [
+                blueSecondary.opacity(0.96),
+                bluePrimary.opacity(0.96)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     static var cardFill: LinearGradient {
-        LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
-                       startPoint: .topLeading,
-                       endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [Color.white.opacity(0.96), Color.white.opacity(0.78)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     static var border: LinearGradient {
-        LinearGradient(colors: [Color.white.opacity(0.25), Color.white.opacity(0.05)],
-                       startPoint: .topLeading,
-                       endPoint: .bottomTrailing)
+        LinearGradient(
+            colors: [Color.white.opacity(0.85), pebble.opacity(0.30)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 }
+
+// MARK: - Background tones
+
+extension AtlasTheme {
+    enum BackgroundTone: String {
+        case light, medium, dark
+    }
+
+    // Subtle solid blues (tuned to stay calm)
+    static let bgLight  = Color(red: 245/255, green: 249/255, blue: 254/255)  // very light
+    static let bgMedium = Color(red: 230/255, green: 240/255, blue: 252/255)  // a bit richer
+    static let bgDark   = Color(red: 210/255, green: 225/255, blue: 245/255)  // clearly darker, still soft
+
+    static func bg(_ tone: BackgroundTone) -> Color {
+        switch tone {
+        case .light:  return bgLight
+        case .medium: return bgMedium
+        case .dark:   return bgDark
+        }
+    }
+}
+
 
 // MARK: - Helpers & Modifiers
 
 extension View {
     func gradientForeground(_ gradient: LinearGradient = AtlasTheme.gradient) -> some View {
         overlay(gradient).mask(self)
+    }
+
+    // NEW: use when you want “thematic” blue text without a gradient
+    func thematicForeground() -> some View {
+        foregroundStyle(AtlasTheme.textPrimary)
     }
 
     func glassCard(cornerRadius: CGFloat = 20) -> some View {
@@ -61,61 +122,28 @@ extension View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(AtlasTheme.border, lineWidth: 1.2)
         )
-        .shadow(color: AtlasTheme.neon.opacity(0.22), radius: 18, x: 0, y: 12)
+        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 12)
     }
 
     func glow(_ color: Color, radius: CGFloat = 16) -> some View {
-        shadow(color: color.opacity(0.5), radius: radius, x: 0, y: 0)
-            .shadow(color: color.opacity(0.2), radius: radius * 1.5, x: 0, y: 0)
+        shadow(color: color.opacity(0.22), radius: radius, x: 0, y: radius * 0.25)
     }
 }
 
-// MARK: - Background
+// MARK: - Background (solid)
 
 struct NeonMotionBackground: View {
-    @State private var rotate = false
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(AtlasTheme.canvas)
-
-            AngularGradient(
-                gradient: Gradient(colors: [AtlasTheme.neon.opacity(0.8),
-                                            AtlasTheme.magenta.opacity(0.7),
-                                            AtlasTheme.steel.opacity(0.4),
-                                            AtlasTheme.neon.opacity(0.8)]),
-                center: .center
-            )
-            .blur(radius: 200)
-            .opacity(0.65)
-            .scaleEffect(1.45)
-            .rotationEffect(.degrees(rotate ? 360 : 0))
-            .animation(reduceMotion ? nil : .linear(duration: 50).repeatForever(autoreverses: false), value: rotate)
-            .blendMode(.overlay)
-
-            LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
-                .blendMode(.multiply)
-
-            RadialGradient(
-                colors: [AtlasTheme.magenta.opacity(0.25), .clear],
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 520
-            )
+        Rectangle()
+            .fill(AtlasTheme.bgDark)
+            .ignoresSafeArea()
             .allowsHitTesting(false)
-        }
-        .ignoresSafeArea()
-        .onAppear { rotate = true }
     }
 }
 
-// MARK: - Core Components
-
+// MARK: - Core Components (unchanged)
 struct AtlasButtonStyle: ButtonStyle {
     var gradient: LinearGradient = AtlasTheme.gradient
-
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
@@ -125,27 +153,36 @@ struct AtlasButtonStyle: ButtonStyle {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(.white.opacity(0.12))
+                    .strokeBorder(.white.opacity(0.10))
             )
             .scaleEffect(configuration.isPressed ? 0.98 : 1)
             .animation(.spring(response: 0.28, dampingFraction: 0.72), value: configuration.isPressed)
-            .glow(AtlasTheme.neon, radius: 10)
+            .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 8)
     }
 }
 
 struct AtlasBadge: View {
     let systemName: String
-
     var body: some View {
         Image(systemName: systemName)
             .font(.title2.weight(.semibold))
             .padding(12)
             .background(
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .overlay(Circle().strokeBorder(AtlasTheme.gradient.opacity(0.7)))
+                    .fill(AtlasTheme.cardFill)
+                    .overlay(
+                        Circle().strokeBorder(
+                            LinearGradient(
+                                colors: [
+                                    AtlasTheme.bluePrimary.opacity(0.35),
+                                    AtlasTheme.blueSecondary.opacity(0.35)
+                                ],
+                                startPoint: .topLeading, endPoint: .bottomTrailing
+                            )
+                        )
+                    )
             )
-            .glow(AtlasTheme.magenta, radius: 6)
+            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
     }
 }
 
@@ -224,4 +261,8 @@ private struct _FlowLayout<Content: View>: View {
                 .alignmentGuide(.top) { _ in y }
         }
     }
+}
+
+#Preview {
+    ContentView()
 }

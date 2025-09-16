@@ -46,38 +46,27 @@ struct ContentView: View {
                                     title: "Finish Setup",
                                     subtitle: "Tell us your goals and schedule",
                                     systemImage: "person.badge.plus",
-                                    accent: AtlasTheme.neon
+                                    accent: AtlasTheme.bluePrimary
                                 )
                             }
                             .buttonStyle(.plain)
                             .accessibilityAddTraits(.isButton)
                         }
 
-                        NavigationLink {
-                            WeeklyPlannerView()
-                        } label: {
-                            AtlasCard(
-                                title: "Weekly Planner",
-                                subtitle: "Map your week and auto-schedule reminders",
-                                systemImage: "calendar",
-                                accent: AtlasTheme.magenta
-                            )
-                        }
-                        .buttonStyle(.plain)
-
-                        // Dynamic tiles (now sourced from Progress)
-                        HStack(spacing: 16) {
-                            SummaryTile(title: "This Week",
-                                        value: "\(progressVM.workoutsThisWeek) / \(weeklyGoal)",
-                                        detail: "Workouts")
-                            SummaryTile(title: "Streak",
-                                        value: "\(progressVM.streakDays)",
-                                        detail: progressVM.streakDays == 1 ? "Day" : "Days")
-                        }
-
                         // Recent Workouts (mini)
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "Recent Workouts", subtitle: "Last 3 sessions")
+                        VStack(spacing: 12) {
+                            // ⬇️ Centered header
+                            VStack(spacing: 4) {
+                                Text("Recent Workouts")
+                                    .font(.title.bold())
+                                    .foregroundStyle(.primary )
+                                Text("Last 3 sessions")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity)
+
                             if progressVM.sessions.isEmpty {
                                 EmptyStateCard(title: "No workouts yet",
                                                subtitle: "Start a session to see your progress.")
@@ -85,39 +74,14 @@ struct ContentView: View {
                                 ForEach(progressVM.sessions.prefix(3)) { session in
                                     MiniWorkoutRow(session: session)
                                 }
-                                NavigationLink {
-                                    ProgressDashboardView()
-                                } label: {
-                                    Text("View all →").font(.subheadline.weight(.semibold))
-                                }
-                                .frame(maxWidth: .infinity, alignment: .trailing)
+                                // "View all" link intentionally removed
                             }
                         }
 
-                        // Quick Start Templates
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "Quick Start", subtitle: "Jump into a routine")
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 12) {
-                                    ForEach(quickTemplates, id: \.self) { t in
-                                        NavigationLink { StartWorkoutView() } label: {
-                                            HStack(spacing: 8) {
-                                                Image(systemName: "bolt.fill")
-                                                Text(t)
-                                            }
-                                            .font(.subheadline.weight(.semibold))
-                                            .padding(.horizontal, 14)
-                                            .padding(.vertical, 10)
-                                            .background(AtlasTheme.gradient.opacity(0.22), in: Capsule())
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                            }
-                        }
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 24)
+                    .safeAreaPadding(.bottom, 120)
                 }
             }
             .navigationTitle("AtlasFit")
@@ -135,9 +99,7 @@ struct ContentView: View {
                 // Dev menu (top-right)
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu("Dev") {
-                        Button("Reset Onboarding") {
-                            DevReset.resetOnboarding()
-                        }
+                        Button("Reset Onboarding") { DevReset.resetOnboarding() }
                     }
                 }
                 #endif
@@ -179,10 +141,12 @@ private struct HeroHeader: View {
     @State private var appear = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(spacing: 12) {
             Text(greeting())
                 .font(.largeTitle.bold())
-                .gradientForeground()
+                .foregroundStyle(.primary )
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)         // center horizontally
                 .opacity(appear ? 1 : 0)
                 .offset(y: appear ? 0 : 8)
                 .animation(.spring(duration: 0.6).delay(0.1), value: appear)
@@ -191,21 +155,14 @@ private struct HeroHeader: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .kerning(1)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)         // center horizontally
                 .opacity(appear ? 1 : 0)
                 .offset(y: appear ? 0 : 6)
                 .animation(.spring(duration: 0.6).delay(0.15), value: appear)
 
-            HStack(spacing: 10) {
-                NavigationLink { StartWorkoutView() } label: { Chip(text: "Start a Workout") }
-                NavigationLink { WeeklyPlannerView() } label: { Chip(text: "Weekly Plan") }
-                NavigationLink { ProgressDashboardView() } label: { Chip(text: "Progress") }
-            }
-            .buttonStyle(.plain)
-            .opacity(appear ? 1 : 0)
-            .offset(y: appear ? 0 : 8)
-            .animation(.spring(duration: 0.6).delay(0.2), value: appear)
+            // no chips here (tabs handle nav)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear { appear = true }
     }
 
@@ -220,37 +177,46 @@ private struct HeroHeader: View {
     }
 }
 
-// MARK: - Snapshot Card
+// MARK: - Snapshot Card (centered)
 
 private struct ProgressSnapshotCard: View {
     let workoutsThisWeek: Int
     let weeklyGoal: Int
     let streakDays: Int
     let lastWorkout: Date?
-    let weekActivity: [Bool] // 7 flags, Sunday → Saturday
+    let weekActivity: [Bool]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            SectionHeader(title: "This Week", subtitle: "Work hard today → healthier tomorrow")
-
-            HStack(spacing: 16) {
-                SummaryTile(title: "Completed", value: "\(workoutsThisWeek) / \(weeklyGoal)", detail: "Workouts")
-                SummaryTile(title: "Streak", value: "\(streakDays)", detail: streakDays == 1 ? "Day" : "Days")
+        VStack(spacing: 16) {
+            // Centered header
+            VStack(spacing: 4) {
+                Text("This Week")
+                    .font(.title.bold())
+                    .gradientForeground()
             }
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
 
+            // Centered tiles
+            HStack(spacing: 16) {
+                CenteredSummaryTile(title: "Completed", value: "\(workoutsThisWeek) / \(weeklyGoal)", detail: "Workouts")
+                CenteredSummaryTile(title: "Streak", value: "\(streakDays)", detail: streakDays == 1 ? "Day" : "Days")
+            }
+            .frame(maxWidth: .infinity)
+
+            // Centered week dots
             WeekDots(flags: weekActivity)
+                .frame(maxWidth: .infinity, alignment: .center)
 
+            // Centered "last workout" line
             if let last = lastWorkout {
                 HStack(spacing: 8) {
                     Image(systemName: "clock.arrow.circlepath")
                     Text("Last workout: \(last.formatted(date: .abbreviated, time: .shortened))")
-                    Spacer()
-                    NavigationLink { ProgressDashboardView() } label: {
-                        Text("See progress →").font(.subheadline.weight(.semibold))
-                    }
                 }
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
         }
         .padding(16)
@@ -258,12 +224,35 @@ private struct ProgressSnapshotCard: View {
     }
 }
 
-private struct WeekDots: View {
-    let flags: [Bool] // Sunday → Saturday
+private struct CenteredSummaryTile: View {
+    let title: String
+    let value: String
+    let detail: String
 
-    private var symbols: [String] {
-        Calendar.current.shortWeekdaySymbols.map { String($0.prefix(1)) }
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.title)
+                .bold()
+                .gradientForeground()
+            Text(detail)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity)
+        .padding(16)
+        .glassCard(cornerRadius: 20)
     }
+}
+
+
+private struct WeekDots: View {
+    let flags: [Bool]
+    private var symbols: [String] { Calendar.current.shortWeekdaySymbols.map { String($0.prefix(1)) } }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -284,8 +273,6 @@ private struct WeekDots: View {
         }
     }
 }
-
-// MARK: - Quick actions
 
 private struct QuickActions: View {
     let remaining: Int
@@ -322,68 +309,16 @@ private struct QuickActions: View {
 
     var body: some View {
         Wrap(spacing: 12) {
-            QuickActionPill(icon: "flame.fill", title: "Push Harder", detail: remainingDetail)
-            QuickActionPill(icon: "target", title: "Hold the Line", detail: streakDetail)
-            QuickActionPill(icon: "timer", title: "Last Grind", detail: lastWorkoutDetail)
+            // optional quick action pills (kept hidden to avoid duplication)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct QuickActionPill: View {
-    let icon: String
-    let title: String
-    let detail: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(AtlasTheme.gradient)
-                    .opacity(0.35)
-                Circle()
-                    .stroke(AtlasTheme.border, lineWidth: 1)
-                Image(systemName: icon)
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(Color.white)
-            }
-            .frame(width: 42, height: 42)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.caption.weight(.heavy))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                Text(detail)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.85)
-            }
-            .multilineTextAlignment(.leading)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: 260, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AtlasTheme.cardFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(AtlasTheme.border, lineWidth: 1)
-        )
-        .shadow(color: AtlasTheme.neon.opacity(0.18), radius: 10, x: 0, y: 6)
-    }
-}
-
-// MARK: - Tiles & Rows
-
 private struct SummaryTile: View {
     let title: String
     let value: String
     let detail: String
-
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.subheadline).foregroundStyle(.secondary)
@@ -402,7 +337,7 @@ private struct MiniWorkoutRow: View {
         HStack(spacing: 12) {
             Image(systemName: "figure.strengthtraining.traditional")
                 .padding(10)
-                .background(AtlasTheme.gradient.opacity(0.25), in: Circle())
+                .background(AtlasTheme.gradient.opacity(0.18), in: Circle())
             VStack(alignment: .leading, spacing: 2) {
                 Text(session.template).font(.headline)
                 Text("\(session.date.formatted(date: .abbreviated, time: .shortened))")
@@ -450,7 +385,7 @@ private struct Chip: View {
             .font(.subheadline.weight(.semibold))
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.22)))
+            .background(Capsule().fill(AtlasTheme.gradient.opacity(0.18)))
     }
 }
 

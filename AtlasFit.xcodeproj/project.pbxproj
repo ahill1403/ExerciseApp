@@ -10,6 +10,7 @@
 		9C35F6F22E70B349006EC7E2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C35F6F12E70B349006EC7E2 /* ContentView.swift */; };
 		9C35F71F2E70B459006EC7E2 /* WeeklyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C35F71E2E70B452006EC7E2 /* WeeklyPlannerView.swift */; };
 		9C3BE2CF2E75F15300A00C25 /* WeeklyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C3BE2CE2E75F14B00A00C25 /* WeeklyPlan.swift */; };
+		9C7A69982E8F062200BA5C4C /* AtlasTabRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7A69972E8F061D00BA5C4C /* AtlasTabRoot.swift */; };
 		9C85FF312E7340480085CEC1 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF302E7340420085CEC1 /* WelcomeView.swift */; };
 		9C85FF332E7340520085CEC1 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF322E73404B0085CEC1 /* OnboardingFlowView.swift */; };
 		9C85FF352E73405B0085CEC1 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF342E7340580085CEC1 /* LoginView.swift */; };
@@ -22,6 +23,7 @@
 		9C85FF532E7350090085CEC1 /* ProgressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF522E734FF90085CEC1 /* ProgressViewModel.swift */; };
 		9C85FF552E7350330085CEC1 /* StartWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */; };
 		9C85FF572E73504D0085CEC1 /* ProgressDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */; };
+		9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +50,7 @@
 		9C35F7062E70B34A006EC7E2 /* AtlasFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C35F71E2E70B452006EC7E2 /* WeeklyPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlannerView.swift; sourceTree = "<group>"; };
 		9C3BE2CE2E75F14B00A00C25 /* WeeklyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlan.swift; sourceTree = "<group>"; };
+		9C7A69972E8F061D00BA5C4C /* AtlasTabRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasTabRoot.swift; sourceTree = "<group>"; };
 		9C85FF2E2E7340280085CEC1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		9C85FF2F2E7340360085CEC1 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
 		9C85FF302E7340420085CEC1 /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
@@ -60,6 +63,7 @@
 		9C85FF522E734FF90085CEC1 /* ProgressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressViewModel.swift; sourceTree = "<group>"; };
 		9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartWorkoutView.swift; sourceTree = "<group>"; };
 		9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDashboardView.swift; sourceTree = "<group>"; };
+		9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingExperienceMatrixView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -164,6 +168,8 @@
 		9C35F71B2E70B3FE006EC7E2 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				9C7A69962E8F060F00BA5C4C /* Shell */,
+				9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */,
 				9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */,
 				9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */,
 				9C85FF342E7340580085CEC1 /* LoginView.swift */,
@@ -174,6 +180,14 @@
 				9C85FF3A2E7340C80085CEC1 /* EditProfileView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		9C7A69962E8F060F00BA5C4C /* Shell */ = {
+			isa = PBXGroup;
+			children = (
+				9C7A69972E8F061D00BA5C4C /* AtlasTabRoot.swift */,
+			);
+			path = Shell;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -257,7 +271,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1620;
-				LastUpgradeCheck = 1620;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					9C35F6EB2E70B349006EC7E2 = {
 						CreatedOnToolsVersion = 16.2;
@@ -326,12 +340,14 @@
 				9C85FF552E7350330085CEC1 /* StartWorkoutView.swift in Sources */,
 				9C85FF472E73499E0085CEC1 /* EditProfileViewModel.swift in Sources */,
 				9C85FF312E7340480085CEC1 /* WelcomeView.swift in Sources */,
+				9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */,
 				9C85FF332E7340520085CEC1 /* OnboardingFlowView.swift in Sources */,
 				9C85FF442E73458F0085CEC1 /* Models.swift in Sources */,
 				9C85FF3B2E7340C80085CEC1 /* EditProfileView.swift in Sources */,
 				9C85FF512E734FE50085CEC1 /* StartWorkoutViewModel.swift in Sources */,
 				9C85FF532E7350090085CEC1 /* ProgressViewModel.swift in Sources */,
 				9C3BE2CF2E75F15300A00C25 /* WeeklyPlan.swift in Sources */,
+				9C7A69982E8F062200BA5C4C /* AtlasTabRoot.swift in Sources */,
 				9C85FF452E73459A0085CEC1 /* OnboardingViewModel.swift in Sources */,
 				9C85FF572E73504D0085CEC1 /* ProgressDashboardView.swift in Sources */,
 				9C35F6F22E70B349006EC7E2 /* ContentView.swift in Sources */,
@@ -428,6 +444,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -484,6 +501,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -494,16 +512,20 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AtlasFit/AtlasFit.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AtlasFit/Preview Content\"";
+				DEVELOPMENT_TEAM = 4RCU277L6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "AtlasFit reads your workouts and weight to show meaningful progress.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "AtlasFit writes your completed workouts so they appear in the Health app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDarkContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -511,6 +533,10 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -522,16 +548,20 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AtlasFit/AtlasFit.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AtlasFit/Preview Content\"";
+				DEVELOPMENT_TEAM = 4RCU277L6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "AtlasFit reads your workouts and weight to show meaningful progress.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "AtlasFit writes your completed workouts so they appear in the Health app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIStatusBarStyle = UIStatusBarStyleDarkContent;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -539,6 +569,10 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

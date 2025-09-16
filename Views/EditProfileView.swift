@@ -1,3 +1,8 @@
+//
+//  EditProfileView.swift
+//  AtlasFit
+//
+
 import SwiftUI
 
 struct EditProfileView: View {

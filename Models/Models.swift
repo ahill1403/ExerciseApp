@@ -36,7 +36,13 @@ extension FitnessArea {
 }
 
 enum Units: String, Codable, CaseIterable, Identifiable { case lbs = "lbs", kgs = "kgs"; var id: String { rawValue } }
-enum Gender: String, Codable, CaseIterable, Identifiable { case female = "Female", male = "Male", other = "Other"; var id: String { rawValue } }
+enum Gender: String, Codable, CaseIterable, Identifiable {
+    case female = "Female"
+    case male = "Male"
+    case other = "Other"
+    case preferNotToSay = "Prefer not to say"
+    var id: String { rawValue }
+}
 
 enum AgeRange: String, Codable, CaseIterable, Identifiable {
     case teens = "13-17"
@@ -60,7 +66,7 @@ struct OnboardingData {
     var reminderTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!
     var wantsNotifications: Bool = true
 
-    var gender: Gender = .other
+    var gender: Gender = .preferNotToSay
     var ageRange: AgeRange = .midAdults
     var heightInCm: Double = 175
     var weight: Double = 170
@@ -81,3 +87,4 @@ struct UserProfile: Codable {
     var weight: Double
     var units: Units
 }
+

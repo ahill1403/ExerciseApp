@@ -3,12 +3,12 @@ import SwiftUI
 struct OnboardingFlowView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = OnboardingViewModel()
-
+    
     var body: some View {
         NavigationStack {
             ZStack {
                 NeonMotionBackground()
-
+                
                 VStack(spacing: 16) {
                     // Progress: hide on .done to avoid out-of-bounds warning
                     if vm.step != .done {
@@ -18,40 +18,45 @@ struct OnboardingFlowView: View {
                             .tint(AtlasTheme.neon)
                             .padding(.horizontal, 20)
                     }
-
-                    Group {
-                        switch vm.step {
-                        case .goal: GoalStep(goal: $vm.data.goal)
-                        case .experience:
-                            ExperienceStep(
-                                experience: $vm.data.experience,
-                                experienceByArea: $vm.data.experienceByArea
-                            )
-                        case .frequency:
-                            FrequencyStep(
-                                days: $vm.data.daysPerWeek,
-                                minutesPerDay: $vm.data.minutesPerDay
-                            )
-                        case .reminder: ReminderStep(wants: $vm.data.wantsNotifications, time: $vm.data.reminderTime)
-                        case .physique:
-                            PhysiqueStep(
-                                gender: $vm.data.gender,
-                                ageRange: $vm.data.ageRange,
-                                heightInCm: $vm.data.heightInCm,
-                                weight: $vm.data.weight,
-                                units: $vm.data.units
-                            )
-                        case .done:
-                            VStack(spacing: 16) {
-                                Text("You’re set!").font(.title.bold()).gradientForeground()
-                                Text("Building your starting plan…").foregroundStyle(.secondary)
+                    
+                    
+                    ScrollView {
+                        Group {
+                            switch vm.step {
+                            case .goal: GoalStep(goal: $vm.data.goal)
+                            case .experience:
+                                ExperienceStep(
+                                    experience: $vm.data.experience,
+                                    experienceByArea: $vm.data.experienceByArea
+                                )
+                            case .frequency:
+                                FrequencyStep(
+                                    days: $vm.data.daysPerWeek,
+                                    minutesPerDay: $vm.data.minutesPerDay
+                                )
+                            case .reminder: ReminderStep(wants: $vm.data.wantsNotifications, time: $vm.data.reminderTime)
+                            case .physique:
+                                PhysiqueStep(
+                                    gender: $vm.data.gender,
+                                    ageRange: $vm.data.ageRange,
+                                    heightInCm: $vm.data.heightInCm,
+                                    weight: $vm.data.weight,
+                                    units: $vm.data.units
+                                )
+                            case .done:
+                                VStack(spacing: 16) {
+                                    Text("You’re set!").font(.title.bold()).gradientForeground()
+                                    Text("Building your starting plan…").foregroundStyle(.secondary)
+                                }
+                                .padding(16)
                             }
-                            .padding(16)
                         }
+                        .glassCard(cornerRadius: 24)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 0)
                     }
-                    .glassCard(cornerRadius: 24)
-                    .padding(.horizontal, 20)
-
+                    .scrollIndicators(.hidden)
+                    
                     HStack(spacing: 12) {
                         if vm.step != .goal && vm.step != .done {
                             Button("Back") { vm.back() }
@@ -101,26 +106,26 @@ private struct GoalStep: View {
 private struct ExperienceStep: View {
     @Binding var experience: TrainingExperience
     @Binding var experienceByArea: [FitnessArea: TrainingExperience]
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Training experience").font(.title2.bold()).gradientForeground()
-
+            
             Text("Start with your overall comfort level.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-
+            
             ForEach(TrainingExperience.allCases) { e in
                 SelectRow(title: e.rawValue, isSelected: experience == e) { experience = e }
             }
-
+            
             Divider()
                 .overlay(Color.white.opacity(0.2))
                 .padding(.vertical, 4)
-
+            
             Text("Dial in each fitness pillar")
                 .font(.headline)
-
+            
             VStack(spacing: 12) {
                 ForEach(FitnessArea.allCases) { area in
                     VStack(alignment: .leading, spacing: 8) {
@@ -138,7 +143,7 @@ private struct ExperienceStep: View {
                     }
                 }
             }
-
+            
             Text("We’ll use this to suggest when to emphasize or skip certain areas.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -150,14 +155,14 @@ private struct ExperienceStep: View {
 private struct FrequencyStep: View {
     @Binding var days: Int
     @Binding var minutesPerDay: Int
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Your weekly rhythm").font(.title2.bold()).gradientForeground()
-
+            
             Stepper("Days per week: \(days)", value: $days, in: 1...7)
                 .padding(.vertical, 8)
-
+            
             VStack(alignment: .leading, spacing: 8) {
                 Text("Time per day")
                     .font(.headline)
@@ -166,7 +171,7 @@ private struct FrequencyStep: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-
+            
             Text("You can refine your plan later in Weekly Planner.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -178,7 +183,7 @@ private struct FrequencyStep: View {
 private struct ReminderStep: View {
     @Binding var wants: Bool
     @Binding var time: Date
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Reminders").font(.title2.bold()).gradientForeground()
@@ -198,23 +203,27 @@ private struct PhysiqueStep: View {
     @Binding var heightInCm: Double
     @Binding var weight: Double
     @Binding var units: Units
-
+    
     @State private var heightMode: HeightMode = .cm
     @State private var feet: Int = 5
     @State private var inches: Int = 9
-
+    
     enum HeightMode: String, CaseIterable, Identifiable { case cm = "cm", imperial = "ft/in"; var id: String { rawValue } }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("About you").font(.title2.bold()).gradientForeground()
-
+            
             // Gender
             Picker("Gender", selection: $gender) {
                 ForEach(Gender.allCases) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
 
+            Text("Optional. Used for minor calorie and HR zone estimates; not required to create your plan.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            
             // Age range
             VStack(alignment: .leading, spacing: 8) {
                 Text("Age Range")
@@ -242,7 +251,7 @@ private struct PhysiqueStep: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
-
+            
             // Height mode toggle
             Picker("Height units", selection: $heightMode) {
                 ForEach(HeightMode.allCases) { Text($0.rawValue).tag($0) }
@@ -256,7 +265,7 @@ private struct PhysiqueStep: View {
                     inches = max(0, totalInches % 12)
                 }
             }
-
+            
             // Height input
             if heightMode == .cm {
                 VStack(alignment: .leading) {
@@ -283,7 +292,7 @@ private struct PhysiqueStep: View {
                 .onChange(of: feet) { _, _ in updateCmFromImperial() }
                 .onChange(of: inches) { _, _ in updateCmFromImperial() }
             }
-
+            
             // Weight
             VStack(alignment: .leading) {
                 Text("Weight").font(.subheadline)
@@ -306,7 +315,7 @@ private struct PhysiqueStep: View {
             inches = max(0, totalInches % 12)
         }
     }
-
+    
     private func updateCmFromImperial() {
         let inchesClamped = max(0, min(inches, 11))
         let totalInches = max(0, feet) * 12 + inchesClamped
@@ -318,7 +327,7 @@ private struct SelectRow: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void
-
+    
     var body: some View {
         Button(action: action) {
             HStack {
