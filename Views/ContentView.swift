@@ -32,7 +32,11 @@ struct ContentView: View {
                             weekActivity: weekActivity()
                         )
 
-                        QuickActions()
+                        QuickActions(
+                            remaining: max(weeklyGoal - progressVM.workoutsThisWeek, 0),
+                            streak: progressVM.streakDays,
+                            lastWorkout: progressVM.lastWorkout
+                        )
 
                         if !hasCompletedOnboarding {
                             Button {
@@ -183,6 +187,14 @@ private struct HeroHeader: View {
                 .offset(y: appear ? 0 : 8)
                 .animation(.spring(duration: 0.6).delay(0.1), value: appear)
 
+            Text("WORK HARDER TODAY · BE HEALTHIER TOMORROW")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .kerning(1)
+                .opacity(appear ? 1 : 0)
+                .offset(y: appear ? 0 : 6)
+                .animation(.spring(duration: 0.6).delay(0.15), value: appear)
+
             HStack(spacing: 10) {
                 NavigationLink { StartWorkoutView() } label: { Chip(text: "Start a Workout") }
                 NavigationLink { WeeklyPlannerView() } label: { Chip(text: "Weekly Plan") }
@@ -276,39 +288,92 @@ private struct WeekDots: View {
 // MARK: - Quick actions
 
 private struct QuickActions: View {
+    let remaining: Int
+    let streak: Int
+    let lastWorkout: Date?
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter
+    }()
+
+    private var remainingDetail: String {
+        switch remaining {
+        case ...0: return "Goal met • stack extra work"
+        case 1: return "1 session left • finish strong"
+        default: return "\(remaining) sessions left • no excuses"
+        }
+    }
+
+    private var streakDetail: String {
+        switch streak {
+        case ..<1: return "Streak starts now"
+        case 1: return "1 day on • build momentum"
+        default: return "\(streak) days on • keep the chain"
+        }
+    }
+
+    private var lastWorkoutDetail: String {
+        guard let lastWorkout else { return "No sessions yet • time to move" }
+        let relative = QuickActions.relativeFormatter.localizedString(for: lastWorkout, relativeTo: Date())
+        return "\(relative) • stay relentless"
+    }
+
     var body: some View {
-        HStack(spacing: 12) {
-            NavigationLink {
-                StartWorkoutView()
-            } label: {
-                Label("Start", systemImage: "bolt.fill")
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(AtlasTheme.gradient.opacity(0.25), in: Capsule())
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                WeeklyPlannerView()
-            } label: {
-                Label("Planner", systemImage: "calendar")
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(AtlasTheme.gradientAlt.opacity(0.25), in: Capsule())
-            }
-            .buttonStyle(.plain)
-
-            NavigationLink {
-                ProgressDashboardView()
-            } label: {
-                Label("Progress", systemImage: "chart.bar.xaxis")
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                    .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
-            }
-            .buttonStyle(.plain)
+        Wrap(spacing: 12) {
+            QuickActionPill(icon: "flame.fill", title: "Push Harder", detail: remainingDetail)
+            QuickActionPill(icon: "target", title: "Hold the Line", detail: streakDetail)
+            QuickActionPill(icon: "timer", title: "Last Grind", detail: lastWorkoutDetail)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct QuickActionPill: View {
+    let icon: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(AtlasTheme.gradient)
+                    .opacity(0.35)
+                Circle()
+                    .stroke(AtlasTheme.border, lineWidth: 1)
+                Image(systemName: icon)
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(Color.white)
+            }
+            .frame(width: 42, height: 42)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.heavy))
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                Text(detail)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+            }
+            .multilineTextAlignment(.leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: 260, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AtlasTheme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+        .shadow(color: AtlasTheme.neon.opacity(0.18), radius: 10, x: 0, y: 6)
     }
 }
 

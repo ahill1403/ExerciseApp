@@ -8,78 +8,107 @@ import SwiftUI
 // MARK: - Theme
 
 enum AtlasTheme {
-static var bgBase: Color { Color(uiColor: .systemBackground) }
-static var bgElevated: Color { Color(uiColor: .secondarySystemBackground) }
+    // Core palette
+    static let midnight = Color(red: 12.0/255.0, green: 14.0/255.0, blue: 19.0/255.0)
+    static let forge = Color(red: 24.0/255.0, green: 27.0/255.0, blue: 34.0/255.0)
+    static let steel = Color(red: 47.0/255.0, green: 52.0/255.0, blue: 60.0/255.0)
 
-static let neon = Color(hue: 0.56, saturation: 0.85, brightness: 0.95)
-static let magenta = Color(hue: 0.86, saturation: 0.80, brightness: 0.95)
-static let amber = Color(hue: 0.08, saturation: 0.85, brightness: 1.0)
+    static var bgBase: Color { midnight }
+    static var bgElevated: Color { forge }
 
-static var canvas: LinearGradient {
-LinearGradient(colors: [bgBase, bgElevated], startPoint: .topLeading, endPoint: .bottomTrailing)
-}
-static var gradient: LinearGradient {
-LinearGradient(colors: [neon, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
-}
-static var gradientAlt: LinearGradient {
-LinearGradient(colors: [amber, neon], startPoint: .top, endPoint: .bottomTrailing)
-}
+    static let neon = Color(red: 0.82, green: 0.13, blue: 0.16)      // primary accent (forge red)
+    static let magenta = Color(red: 0.91, green: 0.32, blue: 0.12)   // ember orange
+    static let amber = Color(red: 0.98, green: 0.67, blue: 0.21)     // highlight gold
+
+    static var canvas: LinearGradient {
+        LinearGradient(colors: [midnight, forge], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    static var gradient: LinearGradient {
+        LinearGradient(colors: [neon, magenta], startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+
+    static var gradientAlt: LinearGradient {
+        LinearGradient(colors: [magenta, amber], startPoint: .top, endPoint: .bottomTrailing)
+    }
+
+    static var cardFill: LinearGradient {
+        LinearGradient(colors: [Color.white.opacity(0.08), Color.white.opacity(0.02)],
+                       startPoint: .topLeading,
+                       endPoint: .bottomTrailing)
+    }
+
+    static var border: LinearGradient {
+        LinearGradient(colors: [Color.white.opacity(0.25), Color.white.opacity(0.05)],
+                       startPoint: .topLeading,
+                       endPoint: .bottomTrailing)
+    }
 }
 
 // MARK: - Helpers & Modifiers
 
 extension View {
-func gradientForeground(_ gradient: LinearGradient = AtlasTheme.gradient) -> some View {
-overlay(gradient).mask(self)
-}
+    func gradientForeground(_ gradient: LinearGradient = AtlasTheme.gradient) -> some View {
+        overlay(gradient).mask(self)
+    }
 
-func glassCard(cornerRadius: CGFloat = 20) -> some View {
-background(.thinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-.overlay(
-RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-.strokeBorder(AtlasTheme.gradient.opacity(0.55), lineWidth: 1)
-)
-.shadow(color: AtlasTheme.neon.opacity(0.10), radius: 14, x: 0, y: 8)
-}
+    func glassCard(cornerRadius: CGFloat = 20) -> some View {
+        background(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(AtlasTheme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(AtlasTheme.border, lineWidth: 1.2)
+        )
+        .shadow(color: AtlasTheme.neon.opacity(0.22), radius: 18, x: 0, y: 12)
+    }
 
-func glow(_ color: Color, radius: CGFloat = 16) -> some View {
-shadow(color: color.opacity(0.5), radius: radius, x: 0, y: 0)
-.shadow(color: color.opacity(0.2), radius: radius * 1.5, x: 0, y: 0)
-}
+    func glow(_ color: Color, radius: CGFloat = 16) -> some View {
+        shadow(color: color.opacity(0.5), radius: radius, x: 0, y: 0)
+            .shadow(color: color.opacity(0.2), radius: radius * 1.5, x: 0, y: 0)
+    }
 }
 
 // MARK: - Background
 
 struct NeonMotionBackground: View {
-@State private var rotate = false
-@Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var rotate = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-var body: some View {
-ZStack {
-AtlasTheme.canvas
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(AtlasTheme.canvas)
 
-AngularGradient(
-gradient: Gradient(colors: [AtlasTheme.neon, AtlasTheme.magenta, AtlasTheme.amber, AtlasTheme.neon]),
-center: .center
-)
-.blur(radius: 180)
-.opacity(0.5)
-.scaleEffect(1.35)
-.rotationEffect(.degrees(rotate ? 360 : 0))
-.animation(reduceMotion ? nil : .linear(duration: 60).repeatForever(autoreverses: false), value: rotate)
-.blendMode(.screen)
+            AngularGradient(
+                gradient: Gradient(colors: [AtlasTheme.neon.opacity(0.8),
+                                            AtlasTheme.magenta.opacity(0.7),
+                                            AtlasTheme.steel.opacity(0.4),
+                                            AtlasTheme.neon.opacity(0.8)]),
+                center: .center
+            )
+            .blur(radius: 200)
+            .opacity(0.65)
+            .scaleEffect(1.45)
+            .rotationEffect(.degrees(rotate ? 360 : 0))
+            .animation(reduceMotion ? nil : .linear(duration: 50).repeatForever(autoreverses: false), value: rotate)
+            .blendMode(.overlay)
 
-RadialGradient(
-colors: [Color.white.opacity(0.10), .clear],
-center: .topLeading,
-startRadius: 0,
-endRadius: 600
-)
-.allowsHitTesting(false)
-}
-.ignoresSafeArea()
-.onAppear { rotate = true }
-}
+            LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom)
+                .blendMode(.multiply)
+
+            RadialGradient(
+                colors: [AtlasTheme.magenta.opacity(0.25), .clear],
+                center: .topLeading,
+                startRadius: 0,
+                endRadius: 520
+            )
+            .allowsHitTesting(false)
+        }
+        .ignoresSafeArea()
+        .onAppear { rotate = true }
+    }
 }
 
 // MARK: - Core Components
