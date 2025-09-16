@@ -22,13 +22,21 @@ struct OnboardingFlowView: View {
                     Group {
                         switch vm.step {
                         case .goal: GoalStep(goal: $vm.data.goal)
-                        case .experience: ExperienceStep(experience: $vm.data.experience)
-                        case .frequency: FrequencyStep(days: $vm.data.daysPerWeek)
+                        case .experience:
+                            ExperienceStep(
+                                experience: $vm.data.experience,
+                                experienceByArea: $vm.data.experienceByArea
+                            )
+                        case .frequency:
+                            FrequencyStep(
+                                days: $vm.data.daysPerWeek,
+                                minutesPerDay: $vm.data.minutesPerDay
+                            )
                         case .reminder: ReminderStep(wants: $vm.data.wantsNotifications, time: $vm.data.reminderTime)
                         case .physique:
                             PhysiqueStep(
                                 gender: $vm.data.gender,
-                                age: $vm.data.age,
+                                ageRange: $vm.data.ageRange,
                                 heightInCm: $vm.data.heightInCm,
                                 weight: $vm.data.weight,
                                 units: $vm.data.units
@@ -92,26 +100,78 @@ private struct GoalStep: View {
 
 private struct ExperienceStep: View {
     @Binding var experience: TrainingExperience
+    @Binding var experienceByArea: [FitnessArea: TrainingExperience]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Training experience").font(.title2.bold()).gradientForeground()
+
+            Text("Start with your overall comfort level.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
             ForEach(TrainingExperience.allCases) { e in
                 SelectRow(title: e.rawValue, isSelected: experience == e) { experience = e }
             }
-        }.padding(16)
+
+            Divider()
+                .overlay(Color.white.opacity(0.2))
+                .padding(.vertical, 4)
+
+            Text("Dial in each fitness pillar")
+                .font(.headline)
+
+            VStack(spacing: 12) {
+                ForEach(FitnessArea.allCases) { area in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(area.displayName)
+                            .font(.subheadline.weight(.semibold))
+                        Picker("Experience", selection: Binding(
+                            get: { experienceByArea[area] ?? .novice },
+                            set: { experienceByArea[area] = $0 }
+                        )) {
+                            ForEach(TrainingExperience.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                }
+            }
+
+            Text("We’ll use this to suggest when to emphasize or skip certain areas.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
     }
 }
 
 private struct FrequencyStep: View {
     @Binding var days: Int
+    @Binding var minutesPerDay: Int
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("How many days per week?").font(.title2.bold()).gradientForeground()
+            Text("Your weekly rhythm").font(.title2.bold()).gradientForeground()
+
             Stepper("Days per week: \(days)", value: $days, in: 1...7)
                 .padding(.vertical, 8)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Time per day")
+                    .font(.headline)
+                Stepper("\(minutesPerDay) minutes", value: $minutesPerDay, in: 10...180, step: 5)
+                Text("Helps size workouts to fit your schedule.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
             Text("You can refine your plan later in Weekly Planner.")
-                .font(.subheadline).foregroundStyle(.secondary)
-        }.padding(16)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
     }
 }
 
@@ -134,7 +194,7 @@ private struct ReminderStep: View {
 
 private struct PhysiqueStep: View {
     @Binding var gender: Gender
-    @Binding var age: Int
+    @Binding var ageRange: AgeRange
     @Binding var heightInCm: Double
     @Binding var weight: Double
     @Binding var units: Units
@@ -142,7 +202,6 @@ private struct PhysiqueStep: View {
     @State private var heightMode: HeightMode = .cm
     @State private var feet: Int = 5
     @State private var inches: Int = 9
-    @State private var showAgePicker = false
 
     enum HeightMode: String, CaseIterable, Identifiable { case cm = "cm", imperial = "ft/in"; var id: String { rawValue } }
 
@@ -156,41 +215,32 @@ private struct PhysiqueStep: View {
             }
             .pickerStyle(.segmented)
 
-            // Age – wheel picker in a sheet
-            Button {
-                showAgePicker = true
-            } label: {
-                HStack {
-                    Text("Age")
-                    Spacer()
-                    Text("\(age)")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                }
-                .padding(12)
-                .background(AtlasTheme.gradient.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .sheet(isPresented: $showAgePicker) {
-                NavigationStack {
-                    VStack {
-                        Picker("Age", selection: $age) {
-                            ForEach(13...100, id: \.self) { Text("\($0)").tag($0) }
+            // Age range
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Age Range")
+                    .font(.subheadline)
+                Menu {
+                    Picker("Age Range", selection: $ageRange) {
+                        ForEach(AgeRange.allCases) { range in
+                            Text(range.displayName).tag(range)
                         }
-                        .pickerStyle(.wheel)
-                        .labelsHidden()
-                        .frame(maxHeight: 260)
-
+                    }
+                } label: {
+                    HStack {
+                        Text(ageRange.displayName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
                         Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    .padding()
-                    .navigationTitle("Select Age")
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Done") { showAgePicker = false }
-                        }
-                    }
+                    .padding(12)
+                    .background(AtlasTheme.gradient.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
                 }
+                Text("Used to tailor recovery and mobility guidance.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
 
             // Height mode toggle

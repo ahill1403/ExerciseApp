@@ -34,6 +34,39 @@ struct EditProfileView: View {
                         .pickerStyle(.navigationLink)
 
                         Stepper("Days per Week: \(vm.daysPerWeek)", value: $vm.daysPerWeek, in: 1...7)
+
+                        Stepper("Minutes per Day: \(vm.minutesPerDay)", value: $vm.minutesPerDay, in: 10...180, step: 5)
+                        Text("Helps us size workouts to the time you have available.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .listRowBackground(Color.clear)
+
+                    Section("Experience by Area") {
+                        Text("Fine-tune how confident you feel in each pillar of fitness.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+
+                        ForEach(FitnessArea.allCases) { area in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(area.displayName)
+                                    .font(.subheadline.weight(.semibold))
+                                Picker("Experience", selection: Binding(
+                                    get: { vm.experienceByArea[area] ?? .novice },
+                                    set: { vm.experienceByArea[area] = $0 }
+                                )) {
+                                    ForEach(TrainingExperience.allCases) { option in
+                                        Text(option.rawValue).tag(option)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                            }
+                            .padding(.vertical, 4)
+                        }
+
+                        Text("Advanced ratings let you skip or customize those areas in your plan.")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                     .listRowBackground(Color.clear)
 
@@ -54,7 +87,10 @@ struct EditProfileView: View {
                         }
                         .pickerStyle(.segmented)
 
-                        Stepper("Age: \(vm.age)", value: $vm.age, in: 13...100)
+                        Picker("Age Range", selection: $vm.ageRange) {
+                            ForEach(AgeRange.allCases) { Text($0.displayName).tag($0) }
+                        }
+                        .pickerStyle(.navigationLink)
 
                         VStack(alignment: .leading) {
                             Text("Height (cm)").font(.subheadline)
