@@ -13,13 +13,15 @@ final class EditProfileViewModel: ObservableObject {
     // MARK: - Editable fields
     @Published var goal: FitnessGoal = .general
     @Published var experience: TrainingExperience = .novice
+    @Published var experienceByArea: [FitnessArea: TrainingExperience] = FitnessArea.defaultExperienceLevels
     @Published var daysPerWeek: Int = 3
+    @Published var minutesPerDay: Int = 45
 
     @Published var wantsNotifications: Bool = false
     @Published var reminderTime: Date = Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
 
     @Published var gender: Gender = .other
-    @Published var age: Int = 25
+    @Published var ageRange: AgeRange = .midAdults
     @Published var heightInCm: Double = 175
     @Published var weight: Double = 170
     @Published var units: Units = .lbs
@@ -37,7 +39,9 @@ final class EditProfileViewModel: ObservableObject {
            let profile = try? JSONDecoder().decode(UserProfile.self, from: data) {
             goal = profile.goal
             experience = profile.experience
+            experienceByArea = FitnessArea.defaultExperienceLevels.merging(profile.experienceByArea) { _, new in new }
             daysPerWeek = profile.daysPerWeek
+            minutesPerDay = profile.minutesPerDay
             if let t = profile.reminderTime {
                 wantsNotifications = true
                 reminderTime = t
@@ -45,7 +49,7 @@ final class EditProfileViewModel: ObservableObject {
                 wantsNotifications = false
             }
             gender = profile.gender
-            age = profile.age
+            ageRange = profile.ageRange
             heightInCm = profile.heightInCm
             weight = profile.weight
             units = profile.units
@@ -53,14 +57,18 @@ final class EditProfileViewModel: ObservableObject {
     }
 
     func save() {
+        let normalizedExperience = FitnessArea.defaultExperienceLevels.merging(experienceByArea) { _, new in new }
+
         let profile = UserProfile(
             createdAt: .now,
             goal: goal,
             experience: experience,
+            experienceByArea: normalizedExperience,
             daysPerWeek: daysPerWeek,
+            minutesPerDay: minutesPerDay,
             reminderTime: wantsNotifications ? reminderTime : nil,
             gender: gender,
-            age: age,
+            ageRange: ageRange,
             heightInCm: heightInCm,
             weight: weight,
             units: units

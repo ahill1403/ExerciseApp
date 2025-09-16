@@ -55,14 +55,18 @@ final class OnboardingViewModel: ObservableObject {
 
     private func complete() {
         // Persist the user profile for now to UserDefaults; swap later for Core Data/CloudKit.
+        let experienceByArea = FitnessArea.defaultExperienceLevels.merging(data.experienceByArea) { _, new in new }
+
         let profile = UserProfile(
             createdAt: .now,
             goal: data.goal,
             experience: data.experience,
+            experienceByArea: experienceByArea,
             daysPerWeek: data.daysPerWeek,
+            minutesPerDay: data.minutesPerDay,
             reminderTime: data.wantsNotifications ? data.reminderTime : nil,
             gender: data.gender,
-            age: data.age,
+            ageRange: data.ageRange,
             heightInCm: data.heightInCm,
             weight: data.weight,
             units: data.units
@@ -70,6 +74,8 @@ final class OnboardingViewModel: ObservableObject {
         if let encoded = try? JSONEncoder().encode(profile) {
             UserDefaults.standard.set(encoded, forKey: "userProfile")
         }
+
+        UserDefaults.standard.set(data.daysPerWeek, forKey: "weeklyGoal")
 
         if data.wantsNotifications {
             NotificationManager.shared.scheduleWeeklyReminders(time: data.reminderTime, daysPerWeek: data.daysPerWeek)
