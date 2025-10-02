@@ -46,7 +46,7 @@ struct ContentView: View {
                                     title: "Finish Setup",
                                     subtitle: "Tell us your goals and schedule",
                                     systemImage: "person.badge.plus",
-                                    accent: AtlasTheme.bluePrimary
+                                    accent: AtlasTheme.accentGreen
                                 )
                             }
                             .buttonStyle(.plain)
@@ -390,3 +390,4 @@ private struct Chip: View {
 }
 
 #Preview { ContentView() }
+#Preview { AtlasTabRoot() }

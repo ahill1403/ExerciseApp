@@ -11,7 +11,7 @@ enum AtlasTab: Int, CaseIterable {
     case workout
     case planner
     case home
-    case insights   // routes to ProgressDashboardView
+    case insights
     case settings
 }
 
@@ -51,7 +51,6 @@ struct AtlasTabRoot: View {
                 }
             }
         }
-        // Reserve space AND pin the bar to the bottom like a native tab bar
         .safeAreaInset(edge: .bottom, spacing: 0) {
             AtlasTabBar(selected: $selected)
         }
@@ -61,14 +60,17 @@ struct AtlasTabRoot: View {
 // MARK: - Bottom Bar (edge-to-edge, non-floating)
 
 struct AtlasTabBar: View {
+    @Environment(\.displayScale) private var scale
     @Binding var selected: AtlasTab
+
+    var hairline: CGFloat { 1.0 / max(scale, 2) } // crisp
 
     var body: some View {
         VStack(spacing: 0) {
-            // Thin top divider to match iOS tab bars
+            // Top divider (muted, scheme-aware)
             Rectangle()
-                .fill(AtlasTheme.gradient)
-                .frame(height: 0.7)
+                .fill(AtlasTheme.dividerColor)
+                .frame(height: hairline)
                 .ignoresSafeArea()
 
             HStack {
@@ -82,10 +84,31 @@ struct AtlasTabBar: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            .padding(.bottom, 12)          // simple, reliable baseline padding
-            .background(.ultraThinMaterial) // edge-to-edge background
+            .padding(.bottom, 12)
+            .background(
+                // Subtle surface gradient to match cards/sheets
+                LinearGradient(
+                    colors: [
+                        AtlasTheme.bgElevated.opacity(0.98),
+                        AtlasTheme.bgElevated.opacity(0.94)
+                    ],
+                    startPoint: .top, endPoint: .bottom
+                )
+                .overlay(
+                    Rectangle()
+                        .fill(LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.05),
+                                Color.clear
+                            ],
+                            startPoint: .top, endPoint: .bottom
+                        ))
+                        .frame(height: 12)
+                        .frame(maxHeight: .infinity, alignment: .top)
+                )
+            )
         }
-        .ignoresSafeArea(edges: .bottom)   // sticks to device bottom
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 
@@ -105,7 +128,7 @@ private struct AtlasTabButton: View {
                 Image(systemName: spec.systemImage)
                     .font(.system(size: 20, weight: .semibold))
                     .symbolVariant(isSelected ? .fill : .none)
-                    .foregroundStyle(isSelected ? .primary : .secondary)
+                    .foregroundStyle(isSelected ? AtlasTheme.textPrimary : .secondary)
                     .frame(height: 24)
 
                 // subtle active dot
@@ -134,7 +157,7 @@ private struct CenterHomeButton: View {
                     .fill(AtlasTheme.gradient)
                     .frame(width: 56, height: 56)
                     .overlay(Circle().strokeBorder(Color.white.opacity(0.12)))
-                    .glow(AtlasTheme.bluePrimary, radius: 10)
+                    .glow(AtlasTheme.accentGreen, radius: 10)
 
                 Image(systemName: "house.fill")
                     .font(.system(size: 22, weight: .bold))
@@ -167,4 +190,5 @@ struct SettingsHubView: View {
     }
 }
 
-#Preview { AtlasTabRoot() }
+#Preview("Light") { AtlasTabRoot().preferredColorScheme(.light) }
+#Preview("Dark")  { AtlasTabRoot().preferredColorScheme(.dark) }

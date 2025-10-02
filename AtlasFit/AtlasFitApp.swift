@@ -33,6 +33,6 @@ private struct RootRouter: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.35), value: hasCompletedOnboarding)
+        .animation(.easeInOut(duration: 3.00), value: hasCompletedOnboarding)
     }
 }

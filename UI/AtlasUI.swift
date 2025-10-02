@@ -1,95 +1,107 @@
 //
-//  AtlasUI.swift
+//  AtlasUI.swift — Emerald & Pine (Light & Dark)
 //  AtlasFit
 //
 
 import SwiftUI
+import UIKit
 
-// MARK: - Theme (Subtle Light Blue + Darker Blue Text)
+// MARK: - Theme (Emerald & Pine — traditional, professional, subtle gradients)
 
 enum AtlasTheme {
-    // Background palette — very light, almost-white blues
-    static let sky     = Color(red: 245/255, green: 249/255, blue: 254/255)   // #F5F9FE
-    static let mist    = Color(red: 238/255, green: 244/255, blue: 252/255)   // #EEF4FC
-    static let pebble  = Color(red: 220/255, green: 230/255, blue: 245/255)   // soft divider
+    // Brand hues (fixed)
+    static let pine        = Color(hex: "#0E3B2E")   // Primary
+    static let emerald     = Color(hex: "#145E43")   // Secondary
+    static let accentGreen = Color(hex: "#22A06B")   // Accent
 
-    static var bgBase: Color { sky }      // app background
-    static var bgElevated: Color { .white }
+    // Dynamic neutrals
+    static let ink          = Color.dynamic(lightHex: "#0F172A", darkHex: "#E5E7EB")  // text on bg
+    static let paper        = Color.dynamic(lightHex: "#F8FAF9", darkHex: "#0E1218")  // app base
+    static let elevated     = Color.dynamic(lightHex: "#FFFFFF", darkHex: "#10151D")  // cards, sheets
+    static let support      = Color.dynamic(lightHex: "#A1B5AB", darkHex: "#94A3B8")  // supporting text
+    static let dividerColor = Color.dynamic(lightHex: "#E3EAE6", darkHex: "#1F2937")  // separators
 
-    // Brand blues (kept) + thematic text (slightly darker)
-    static let bluePrimary   = Color(red: 0.17, green: 0.47, blue: 0.92)      // #2B78EB
-    static let blueSecondary = Color(red: 0.13, green: 0.40, blue: 0.82)      // #2167D1
-    static let blueMuted     = Color(red: 0.10, green: 0.30, blue: 0.62)      // #1A4D9E
+    // Background tints (gentle)
+    static let dew  = Color.dynamic(lightHex: "#F4F8F6", darkHex: "#0F141B")
+    static let mist = Color.dynamic(lightHex: "#EEF5F1", darkHex: "#0F151C")
 
-    // NEW: thematic text color (darker, readable on light bg)
-    static let textPrimary = Color(red: 0.10, green: 0.30, blue: 0.62)        // same as blueMuted
+    // Public surfaces
+    static var bgBase: Color     { paper }
+    static var bgElevated: Color { elevated }
 
-    // Back-compat aliases (ok to remove later)
-    static let neon: Color    = bluePrimary
-    static let magenta: Color = blueSecondary
-    static let amber: Color   = blueMuted
+    // Typography
+    static let textPrimary   = ink
+    static let textSecondary = Color.dynamic(lightHex: "#145E43", darkHex: "#CBD5E1") // emerald-ish on light, slate on dark
 
-    // Canvas: whisper-light blue wash (almost flat)
+    // Back-compat aliases (keep old references linking)
+    static let neon: Color    = accentGreen
+    static let magenta: Color = emerald
+    static let amber: Color   = pine
+
+    // Canvas: subtle single-direction gradient (adapts)
     static var canvas: LinearGradient {
         LinearGradient(
-            colors: [Color.white, sky, mist],
+            colors: [
+                Color.dynamic(lightHex: "#FFFFFF", darkHex: "#0B0F14"),
+                paper,
+                dew
+            ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
     }
 
-    // Primary gradient for accents/text masking (now near-solid darker blue)
+    // Primary accent gradient (works on light & dark)
     static var gradient: LinearGradient {
         LinearGradient(
-            colors: [
-                textPrimary.opacity(0.98),
-                blueSecondary.opacity(0.98)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            colors: [ emerald.opacity(0.98), accentGreen.opacity(0.96) ],
+            startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
 
-    // Alt gradient (slightly different hue, still subtle)
+    // Alternate gradient (pine → emerald)
     static var gradientAlt: LinearGradient {
         LinearGradient(
-            colors: [
-                blueSecondary.opacity(0.96),
-                bluePrimary.opacity(0.96)
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            colors: [ pine.opacity(0.98), emerald.opacity(0.96) ],
+            startPoint: .top, endPoint: .bottom
         )
     }
 
+    // Card fill: lift on light / subtle gloss on dark
     static var cardFill: LinearGradient {
         LinearGradient(
-            colors: [Color.white.opacity(0.96), Color.white.opacity(0.78)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            colors: [
+                Color.dynamic(lightHex: "#FFFFFF", lightAlpha: 0.96,
+                              darkHex: "#FFFFFF",   darkAlpha: 0.06),
+                Color.dynamic(lightHex: "#FFFFFF", lightAlpha: 0.80,
+                              darkHex: "#FFFFFF",   darkAlpha: 0.03)
+            ],
+            startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
 
+    // Border: whisper highlight → divider
     static var border: LinearGradient {
         LinearGradient(
-            colors: [Color.white.opacity(0.85), pebble.opacity(0.30)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            colors: [
+                Color.dynamic(lightHex: "#FFFFFF", lightAlpha: 0.85,
+                              darkHex:  "#FFFFFF", darkAlpha: 0.10),
+                Color.dynamic(lightHex: "#E3EAE6", lightAlpha: 0.50,
+                              darkHex:  "#FFFFFF", darkAlpha: 0.04)
+            ],
+            startPoint: .topLeading, endPoint: .bottomTrailing
         )
     }
 }
 
-// MARK: - Background tones
+// MARK: - Background tones (for sections & large blocks)
 
 extension AtlasTheme {
-    enum BackgroundTone: String {
-        case light, medium, dark
-    }
+    enum BackgroundTone: String { case light, medium, dark }
 
-    // Subtle solid blues (tuned to stay calm)
-    static let bgLight  = Color(red: 245/255, green: 249/255, blue: 254/255)  // very light
-    static let bgMedium = Color(red: 230/255, green: 240/255, blue: 252/255)  // a bit richer
-    static let bgDark   = Color(red: 210/255, green: 225/255, blue: 245/255)  // clearly darker, still soft
+    static let bgLight  = paper
+    static let bgMedium = mist
+    static let bgDark   = Color.dynamic(lightHex: "#E6F0EA", darkHex: "#0D1218")
 
     static func bg(_ tone: BackgroundTone) -> Color {
         switch tone {
@@ -100,7 +112,6 @@ extension AtlasTheme {
     }
 }
 
-
 // MARK: - Helpers & Modifiers
 
 extension View {
@@ -108,7 +119,6 @@ extension View {
         overlay(gradient).mask(self)
     }
 
-    // NEW: use when you want “thematic” blue text without a gradient
     func thematicForeground() -> some View {
         foregroundStyle(AtlasTheme.textPrimary)
     }
@@ -122,7 +132,7 @@ extension View {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .strokeBorder(AtlasTheme.border, lineWidth: 1.2)
         )
-        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 12)
+        .shadow(color: Color.black.opacity(0.10), radius: 18, x: 0, y: 12)
     }
 
     func glow(_ color: Color, radius: CGFloat = 16) -> some View {
@@ -130,18 +140,28 @@ extension View {
     }
 }
 
-// MARK: - Background (solid)
+// MARK: - Background (solid) + Legacy aliases
 
-struct NeonMotionBackground: View {
+// Legacy blue aliases to satisfy older references & linkers expecting stored vars
+extension AtlasTheme {
+    static var bluePrimary: Color   = accentGreen  // old primary blue → accent green
+    static var blueSecondary: Color = emerald      // old secondary blue → deep emerald
+    static var blueAccent: Color    = accentGreen
+    static var primaryBlue: Color   = emerald
+    static var brandBlue: Color     = emerald
+}
+
+struct NeonMotionBackground: View { // kept name for back-compat
     var body: some View {
         Rectangle()
-            .fill(AtlasTheme.bgDark)
+            .fill(AtlasTheme.bgBase)
             .ignoresSafeArea()
             .allowsHitTesting(false)
     }
 }
 
-// MARK: - Core Components (unchanged)
+// MARK: - Core Components
+
 struct AtlasButtonStyle: ButtonStyle {
     var gradient: LinearGradient = AtlasTheme.gradient
     func makeBody(configuration: Configuration) -> some View {
@@ -174,8 +194,8 @@ struct AtlasBadge: View {
                         Circle().strokeBorder(
                             LinearGradient(
                                 colors: [
-                                    AtlasTheme.bluePrimary.opacity(0.35),
-                                    AtlasTheme.blueSecondary.opacity(0.35)
+                                    AtlasTheme.accentGreen.opacity(0.35),
+                                    AtlasTheme.emerald.opacity(0.35)
                                 ],
                                 startPoint: .topLeading, endPoint: .bottomTrailing
                             )
@@ -195,7 +215,7 @@ struct SectionHeader: View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 4) {
                 if let subtitle { Text(subtitle).font(.subheadline).foregroundStyle(.secondary) }
-                Text(title).font(.title.bold())
+                Text(title).font(.title.bold()).foregroundStyle(AtlasTheme.textPrimary)
             }
             Spacer()
             trailing
@@ -263,6 +283,122 @@ private struct _FlowLayout<Content: View>: View {
     }
 }
 
-#Preview {
-    ContentView()
+// MARK: - Hex + Dynamic Color helpers
+
+fileprivate extension Color {
+    init(hex: String) {
+        var hex = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hex = hex.replacingOccurrences(of: "#", with: "")
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let r = Double((int >> 16) & 0xFF) / 255.0
+        let g = Double((int >> 8) & 0xFF) / 255.0
+        let b = Double(int & 0xFF) / 255.0
+        self.init(red: r, green: g, blue: b)
+    }
+
+    static func dynamic(lightHex: String, darkHex: String) -> Color {
+        Color(UIColor { trait in
+            trait.userInterfaceStyle == .dark ? uiColor(hex: darkHex) : uiColor(hex: lightHex)
+        })
+    }
+
+    static func dynamic(lightHex: String, lightAlpha: CGFloat,
+                        darkHex: String, darkAlpha: CGFloat) -> Color {
+        Color(UIColor { trait in
+            if trait.userInterfaceStyle == .dark {
+                return uiColor(hex: darkHex, alpha: darkAlpha)
+            } else {
+                return uiColor(hex: lightHex, alpha: lightAlpha)
+            }
+        })
+    }
+}
+
+fileprivate func uiColor(hex: String, alpha: CGFloat = 1.0) -> UIColor {
+    var hex = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+    hex = hex.replacingOccurrences(of: "#", with: "")
+    var int: UInt64 = 0
+    Scanner(string: hex).scanHexInt64(&int)
+    let r = CGFloat((int >> 16) & 0xFF) / 255.0
+    let g = CGFloat((int >> 8) & 0xFF) / 255.0
+    let b = CGFloat(int & 0xFF) / 255.0
+    return UIColor(red: r, green: g, blue: b, alpha: alpha)
+}
+
+#Preview("Light") {
+    ZStack {
+        AtlasTheme.canvas.ignoresSafeArea()
+        VStack(spacing: 16) {
+            SectionHeader(title: "Log Workout", subtitle: "Today")
+            Button {} label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .gradientForeground()
+                        .frame(width: 18, height: 18)
+                    Text("Start Session")
+                        .foregroundStyle(.white)
+                        .padding(.vertical, 2)
+                }
+            }
+            .buttonStyle(AtlasButtonStyle())
+
+            HStack(spacing: 12) {
+                AtlasBadge(systemName: "figure.strengthtraining.traditional")
+                AtlasBadge(systemName: "heart.fill")
+                AtlasBadge(systemName: "chart.bar.xaxis")
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("This Week")
+                    .font(.headline)
+                    .foregroundStyle(AtlasTheme.textPrimary)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(AtlasTheme.cardFill)
+                    .frame(height: 120)
+                    .overlay(
+                        HStack {
+                            Spacer()
+                            VStack(alignment: .trailing) {
+                                Text("Volume").font(.subheadline).foregroundStyle(.secondary)
+                                Text("18,450 kg").font(.title3.bold()).foregroundStyle(AtlasTheme.textPrimary)
+                            }
+                        }
+                        .padding()
+                    )
+                    .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(AtlasTheme.border))
+            }
+        }
+        .padding(20)
+    }
+    .background(AtlasTheme.bgBase)
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    ZStack {
+        AtlasTheme.canvas.ignoresSafeArea()
+        VStack(spacing: 16) {
+            SectionHeader(title: "Log Workout", subtitle: "Today")
+            Button {} label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .gradientForeground()
+                        .frame(width: 18, height: 18)
+                    Text("Start Session")
+                        .foregroundStyle(.white)
+                        .padding(.vertical, 2)
+                }
+            }
+            .buttonStyle(AtlasButtonStyle())
+            HStack(spacing: 12) {
+                AtlasBadge(systemName: "figure.strengthtraining.traditional")
+                AtlasBadge(systemName: "heart.fill")
+                AtlasBadge(systemName: "chart.bar.xaxis")
+            }
+        }
+        .padding(20)
+    }
+    .background(AtlasTheme.bgBase)
+    .preferredColorScheme(.dark)
 }
