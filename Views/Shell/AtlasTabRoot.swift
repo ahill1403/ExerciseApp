@@ -67,8 +67,8 @@ struct AtlasTabBar: View {
         VStack(spacing: 0) {
             // Thin top divider to match iOS tab bars
             Rectangle()
-                .fill(AtlasTheme.pebble.opacity(0.45))
-                .frame(height: 0.5)
+                .fill(AtlasTheme.gradient)
+                .frame(height: 0.7)
                 .ignoresSafeArea()
 
             HStack {
