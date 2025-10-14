@@ -34,6 +34,7 @@ struct StartWorkoutView: View {
         }
         .navigationTitle("Start Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { vm.refreshPlanSuggestion() }
         .toolbar {
             if vm.isLogging {
                 ToolbarItem(placement: .topBarLeading) {
@@ -70,6 +71,8 @@ struct StartWorkoutView: View {
     private var templatePicker: some View {
         ScrollView {
             VStack(spacing: 16) {
+                suggestionCard
+
                 Text("Pick a template")
                     .font(.title2.bold())
                     .gradientForeground()
@@ -98,6 +101,76 @@ struct StartWorkoutView: View {
             }
             .padding(20)
         }
+    }
+
+    @ViewBuilder
+    private var suggestionCard: some View {
+        if let suggestion = vm.planSuggestion {
+            let focusNames = suggestion.areas.map { $0.displayName }
+            let focusSummary = focusNames.joined(separator: " • ")
+            let dayName = weekdayName(for: suggestion.day)
+
+            VStack(alignment: .leading, spacing: 12) {
+                Text(suggestion.isToday ? "Today's plan" : suggestion.offset == 1 ? "Tomorrow's plan" : "Next workout")
+                    .font(.headline)
+                    .gradientForeground()
+
+                if suggestion.isToday {
+                    Text(focusSummary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("\(dayName) • \(focusSummary)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    ForEach(focusNames, id: \.self) { name in
+                        Text(name)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                    }
+                }
+
+                VStack(spacing: 8) {
+                    ForEach(suggestion.templates, id: \.self) { template in
+                        Button {
+                            vm.start(template: template)
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                Text(template)
+                                Spacer()
+                                if template == suggestion.templates.first {
+                                    Text("Recommended")
+                                        .font(.caption2.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(12)
+                            .frame(maxWidth: .infinity)
+                            .background(AtlasTheme.gradient.opacity(0.16), in: RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Text("Based on your weekly plan. You can always adjust days in Planner.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .glassCard(cornerRadius: 18)
+        }
+    }
+
+    private func weekdayName(for day: Int) -> String {
+        let symbols = Calendar.current.weekdaySymbols
+        let idx = (day - 1 + symbols.count) % symbols.count
+        return symbols[idx]
     }
 
     // MARK: - Session Logger

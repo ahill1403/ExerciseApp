@@ -9,10 +9,10 @@ import UserNotifications
 struct WeeklyPlannerView: View {
     // 1=Sun … 7=Sat
     private let days: [(Int, String)] = [(1,"Sun"),(2,"Mon"),(3,"Tue"),(4,"Wed"),(5,"Thu"),(6,"Fri"),(7,"Sat")]
-    private let areas = ["Mobility","Strength","Power","HIIT","NEAT/LISS"]
+    private let areas = FitnessArea.allCases
 
     @State private var selectedWeekday: Int = 2 // default Monday
-    @State private var plan: Plan = PlanStore.load()
+    @State private var plan: WeeklyPlan = PlannerStore.shared.load()
     @State private var alertMessage: String?
 
     var body: some View {
@@ -30,14 +30,14 @@ struct WeeklyPlannerView: View {
                                     .font(.headline)
 
                                 // precompute to help the type-checker
-                                let selectedAreas = plan.days[selectedWeekday] ?? []
+                                let selectedAreas = Set(plan.focusAreas(for: selectedWeekday).map { $0.displayName })
 
-                                ForEach(areas, id: \.self) { a in
+                                ForEach(areas) { area in
                                     Toggle(isOn: Binding(
-                                        get: { selectedAreas.contains(a) },
-                                        set: { on in toggleArea(a, on: on) }
+                                        get: { selectedAreas.contains(area.displayName) },
+                                        set: { on in toggleArea(area, on: on) }
                                     )) {
-                                        Text(a)
+                                        Text(area.displayName)
                                     }
                                     .toggleStyle(.switch)
                                     .tint(AtlasTheme.bluePrimary)
@@ -47,8 +47,9 @@ struct WeeklyPlannerView: View {
                             .glassCard(cornerRadius: 16)
 
                             PlannerActions(
-                                save: { PlanStore.save(plan) },
-                                apply: applyReminders
+                                save: { PlannerStore.shared.save(plan) },
+                                apply: applyReminders,
+                                useRecommended: applyRecommendedPlan
                             )
                             .padding(.top, 6)
                         }
@@ -58,7 +59,7 @@ struct WeeklyPlannerView: View {
                 .navigationTitle("Plan")
         }
         .onChange(of: plan) { _, newPlan in
-            PlanStore.save(newPlan)
+            PlannerStore.shared.save(newPlan)
         }
 
         .alert(
@@ -71,14 +72,14 @@ struct WeeklyPlannerView: View {
         }
     }
 
-    private func toggleArea(_ area: String, on: Bool) {
-        var arr = plan.days[selectedWeekday] ?? []
+    private func toggleArea(_ area: FitnessArea, on: Bool) {
+        var current = plan.focusAreas(for: selectedWeekday)
         if on {
-            if !arr.contains(area) { arr.append(area) }
+            if !current.contains(area) { current.append(area) }
         } else {
-            arr.removeAll { $0 == area }
+            current.removeAll { $0 == area }
         }
-        plan.days[selectedWeekday] = arr.isEmpty ? nil : arr
+        plan.set(current, for: selectedWeekday)
     }
 
     private func label(for day: Int) -> String {
@@ -133,6 +134,7 @@ private struct DaySelector: View {
 private struct PlannerActions: View {
     let save: () -> Void
     let apply: () -> Void
+    let useRecommended: () -> Void
 
     var body: some View {
         ViewThatFits {
@@ -148,30 +150,15 @@ private struct PlannerActions: View {
 
         Button("Apply to Reminders", action: apply)
             .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
+
+        Button("Use Recommended Plan", action: useRecommended)
+            .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradient))
     }
 }
 
-// MARK: - Local plan persistence & scheduling (scoped to this file)
+// MARK: - Scheduling
 
 extension WeeklyPlannerView {
-    struct Plan: Codable, Equatable { var days: [Int: [String]] = [:] }
-
-    enum PlanStore {
-        private static let key = "weeklyPlan"
-        static func load() -> Plan {
-            guard
-                let data = UserDefaults.standard.data(forKey: key),
-                let p = try? JSONDecoder().decode(Plan.self, from: data)
-            else { return Plan() }
-            return p
-        }
-        static func save(_ plan: Plan) {
-            if let data = try? JSONEncoder().encode(plan) {
-                UserDefaults.standard.set(data, forKey: key)
-            }
-        }
-    }
-
     func applyReminders() {
         let weekdays = plan.days.keys.sorted()
         guard !weekdays.isEmpty else {
@@ -210,6 +197,21 @@ extension WeeklyPlannerView {
             center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
         alertMessage = "Reminders scheduled for \(weekdays.count) day(s) per week."
+    }
+
+    func applyRecommendedPlan() {
+        guard
+            let data = UserDefaults.standard.data(forKey: "userProfile"),
+            let profile = try? JSONDecoder().decode(UserProfile.self, from: data)
+        else {
+            alertMessage = "Complete onboarding to generate a recommended plan."
+            return
+        }
+
+        let recommended = PlannerStore.shared.recommendedPlan(for: profile)
+        plan = recommended
+        PlannerStore.shared.save(recommended)
+        alertMessage = "Weekly plan updated using your profile."
     }
 }
 
