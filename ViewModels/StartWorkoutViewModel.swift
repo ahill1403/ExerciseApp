@@ -9,12 +9,49 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published var isLogging = false
     @Published var exercises: [ExerciseEntry] = []
     @Published var startTime: Date?
-    
+    @Published private(set) var planSuggestion: PlanSuggestion?
+
     // Sheets
     @Published var showAddExercise = false
     @Published var newExerciseName = ""
-    
-    let templates = ["Full Body", "Upper Body", "Lower Body", "Push", "Pull", "Legs", "Core", "Custom"]
+
+    let templates = [
+        "Full Body",
+        "Upper Body",
+        "Lower Body",
+        "Push",
+        "Pull",
+        "Legs",
+        "Core",
+        "Mobility Flow",
+        "HIIT Blast",
+        "Power Complex",
+        "Active Recovery Walk",
+        "Custom"
+    ]
+
+    private let templateMapping: [FitnessArea: [String]] = [
+        .strength: ["Full Body", "Upper Body", "Lower Body", "Push", "Pull", "Legs"],
+        .mobility: ["Mobility Flow", "Full Body"],
+        .power: ["Power Complex", "Full Body"],
+        .hiit: ["HIIT Blast", "Full Body"],
+        .neat: ["Active Recovery Walk", "Mobility Flow"]
+    ]
+
+    private let calendar = Calendar.current
+
+    struct PlanSuggestion {
+        let day: Int
+        let offset: Int
+        let areas: [FitnessArea]
+        let templates: [String]
+
+        var isToday: Bool { offset == 0 }
+    }
+
+    init() {
+        refreshPlanSuggestion()
+    }
     
     func start(template: String) {
         selectedTemplate = template
@@ -38,6 +75,28 @@ final class StartWorkoutViewModel: ObservableObject {
     
     func removeExercise(_ exerciseID: UUID) {
         exercises.removeAll { $0.id == exerciseID }
+    }
+
+    func refreshPlanSuggestion(referenceDate: Date = Date()) {
+        let plan = PlannerStore.shared.load()
+        guard let next = nextScheduledDay(in: plan, from: referenceDate) else {
+            planSuggestion = nil
+            return
+        }
+
+        let areas = plan.focusAreas(for: next.day)
+        guard !areas.isEmpty else {
+            planSuggestion = nil
+            return
+        }
+
+        let templates = recommendedTemplates(for: areas)
+        planSuggestion = PlanSuggestion(day: next.day, offset: next.offset, areas: areas, templates: templates)
+    }
+
+    func startRecommendedTemplate() {
+        guard let template = planSuggestion?.templates.first else { return }
+        start(template: template)
     }
     
     func autofillFromLast() {
@@ -87,5 +146,36 @@ final class StartWorkoutViewModel: ObservableObject {
         isLogging = false
         exercises = []
         startTime = nil
+        refreshPlanSuggestion()
+    }
+
+    private func nextScheduledDay(in plan: WeeklyPlan, from date: Date) -> (day: Int, offset: Int)? {
+        let today = calendar.component(.weekday, from: date)
+        for offset in 0..<7 {
+            let day = ((today - 1 + offset) % 7) + 1
+            if !plan.focusAreas(for: day).isEmpty {
+                return (day, offset)
+            }
+        }
+        return nil
+    }
+
+    private func recommendedTemplates(for areas: [FitnessArea]) -> [String] {
+        var options: [String] = []
+        for area in areas {
+            if let mapped = templateMapping[area] {
+                options.append(contentsOf: mapped)
+            }
+        }
+        if options.isEmpty {
+            options.append("Full Body")
+        }
+        var unique: [String] = []
+        for option in options {
+            if !unique.contains(option) {
+                unique.append(option)
+            }
+        }
+        return unique
     }
 }

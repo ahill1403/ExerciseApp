@@ -12,9 +12,8 @@ struct OnboardingFlowView: View {
                 VStack(spacing: 16) {
                     // Progress: hide on .done to avoid out-of-bounds warning
                     if vm.step != .done {
-                        let total = OnboardingViewModel.Step.physique.rawValue + 1 // visible steps
-                        let value = min(vm.step.rawValue, OnboardingViewModel.Step.physique.rawValue) + 1
-                        ProgressView(value: Double(value), total: Double(total))
+                        let progress = vm.progress
+                        ProgressView(value: progress.value, total: progress.total)
                             .tint(AtlasTheme.neon)
                             .padding(.horizontal, 20)
                     }
@@ -43,10 +42,21 @@ struct OnboardingFlowView: View {
                                     weight: $vm.data.weight,
                                     units: $vm.data.units
                                 )
+                            case .plan:
+                                PlanChoiceStep(
+                                    plan: vm.recommendedPlan ?? WeeklyPlan(),
+                                    decision: $vm.planDecision
+                                )
                             case .done:
                                 VStack(spacing: 16) {
                                     Text("You’re set!").font(.title.bold()).gradientForeground()
-                                    Text("Building your starting plan…").foregroundStyle(.secondary)
+                                    if vm.data.experience == .novice || vm.planDecision == .recommended {
+                                        Text("Your weekly plan is ready to go. Check it anytime under Planner.")
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        Text("Jump into the Weekly Planner to craft your own routine.")
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
                                 .padding(16)
                             }
@@ -64,8 +74,10 @@ struct OnboardingFlowView: View {
                                 .frame(maxWidth: 160)
                         }
                         if vm.step != .done {
-                            Button("Continue") { vm.next() }
+                            let title = vm.step == .plan ? "Finish" : "Continue"
+                            Button(title) { vm.next() }
                                 .buttonStyle(AtlasButtonStyle())
+                                .disabled(!vm.canContinue)
                         }
                     }
                     .padding(.horizontal, 20)
@@ -338,6 +350,113 @@ private struct SelectRow: View {
             .padding(14)
             .frame(maxWidth: .infinity)
             .background(AtlasTheme.gradient.opacity(0.18), in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct PlanChoiceStep: View {
+    let plan: WeeklyPlan
+    @Binding var decision: OnboardingViewModel.PlanDecision?
+
+    private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Kickstart your weekly plan")
+                .font(.title2.bold())
+                .gradientForeground()
+
+            Text("Here’s how we’d structure your week based on what you told us.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            if plan.days.isEmpty {
+                Text("We'll remind you to build a plan later, or you can start from scratch now.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(plan.days.keys.sorted(), id: \.self) { day in
+                        let focus = plan.days[day]?.joined(separator: ", ") ?? "Rest"
+                        HStack {
+                            Text(label(for: day).uppercased())
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .leading)
+                            Text(focus)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(14)
+                .background(AtlasTheme.gradient.opacity(0.16), in: RoundedRectangle(cornerRadius: 14))
+            }
+
+            VStack(spacing: 12) {
+                PlanDecisionRow(
+                    title: "Use AtlasFit’s recommended plan",
+                    message: "Auto-fill my week so I can start training right away.",
+                    icon: "sparkles",
+                    isSelected: decision == .recommended
+                ) { decision = .recommended }
+
+                PlanDecisionRow(
+                    title: "I’ll build my own plan",
+                    message: "I’d rather customise each day myself in the planner.",
+                    icon: "square.and.pencil",
+                    isSelected: decision == .custom
+                ) { decision = .custom }
+            }
+
+            Text("You can adjust your schedule anytime from the Weekly Planner tab.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(16)
+    }
+
+    private func label(for day: Int) -> String {
+        let idx = (day - 1 + weekdaySymbols.count) % weekdaySymbols.count
+        return weekdaySymbols[idx]
+    }
+}
+
+private struct PlanDecisionRow: View {
+    let title: String
+    let message: String
+    let icon: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundStyle(isSelected ? Color.white : .secondary)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(AtlasTheme.neon)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(AtlasTheme.gradient.opacity(isSelected ? 0.28 : 0.16))
+            )
         }
         .buttonStyle(.plain)
     }
