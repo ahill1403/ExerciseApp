@@ -24,9 +24,9 @@ final class StartWorkoutViewModel: ObservableObject {
         "Legs",
         "Core",
         "Mobility Flow",
-        "HIIT Blast",
+        "Quick Interval Blast",
         "Power Complex",
-        "Active Recovery Walk",
+        "Steady Walk",
         "Custom"
     ]
 
@@ -34,8 +34,8 @@ final class StartWorkoutViewModel: ObservableObject {
         .strength: ["Full Body", "Upper Body", "Lower Body", "Push", "Pull", "Legs"],
         .mobility: ["Mobility Flow", "Full Body"],
         .power: ["Power Complex", "Full Body"],
-        .hiit: ["HIIT Blast", "Full Body"],
-        .neat: ["Active Recovery Walk", "Mobility Flow"]
+        .hiit: ["Quick Interval Blast", "Full Body"],
+        .neat: ["Steady Walk", "Mobility Flow"]
     ]
 
     private let calendar = Calendar.current
