@@ -101,6 +101,7 @@ struct StartWorkoutView: View {
             }
             .padding(20)
         }
+        .safeAreaPadding(.bottom, 160)
     }
 
     @ViewBuilder

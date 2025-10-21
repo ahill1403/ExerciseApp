@@ -61,6 +61,7 @@ struct AtlasTabRoot: View {
 
 struct AtlasTabBar: View {
     @Environment(\.displayScale) private var scale
+    @Environment(\.safeAreaInsets) private var safeAreaInsets
     @Binding var selected: AtlasTab
 
     var hairline: CGFloat { 1.0 / max(scale, 2) } // crisp
@@ -84,7 +85,7 @@ struct AtlasTabBar: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.bottom, max(10, safeAreaInsets.bottom))
             .background(
                 // Subtle surface gradient to match cards/sheets
                 LinearGradient(

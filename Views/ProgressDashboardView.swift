@@ -56,6 +56,7 @@ struct ProgressDashboardView: View {
                         }
                     }
                     .padding(20)
+                    .safeAreaPadding(.bottom, 160)
                 }
             )
             .navigationTitle("Progress")
