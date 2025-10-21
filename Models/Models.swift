@@ -26,7 +26,31 @@ enum FitnessArea: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var displayName: String { rawValue }
+    var displayName: String {
+        switch self {
+        case .mobility: return "Mobility & Stretching"
+        case .strength: return "Strength Training"
+        case .power: return "Power & Athleticism"
+        case .hiit: return "Quick Intervals"
+        case .neat: return "Steady Cardio"
+        }
+    }
+
+    /// Case-insensitive aliases so previously stored values still decode correctly.
+    var aliases: [String] {
+        switch self {
+        case .mobility:
+            return [rawValue, displayName, "Mobility & Recovery"].map { $0.lowercased() }
+        case .strength:
+            return [rawValue, displayName].map { $0.lowercased() }
+        case .power:
+            return [rawValue, displayName, "Explosive Power"].map { $0.lowercased() }
+        case .hiit:
+            return [rawValue, displayName, "Intervals"].map { $0.lowercased() }
+        case .neat:
+            return [rawValue, displayName, "NEAT", "Easy Cardio"].map { $0.lowercased() }
+        }
+    }
 }
 
 extension FitnessArea {
@@ -86,5 +110,16 @@ struct UserProfile: Codable {
     var heightInCm: Double
     var weight: Double
     var units: Units
+}
+
+extension TrainingExperience {
+    /// Relative order used for filtering catalog workouts and prioritising focus areas.
+    var levelIndex: Int {
+        switch self {
+        case .novice: return 0
+        case .intermediate: return 1
+        case .advanced: return 2
+        }
+    }
 }
 

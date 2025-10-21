@@ -4,6 +4,9 @@
 //
 
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Tabs
 
@@ -51,7 +54,7 @@ struct AtlasTabRoot: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+        .overlay(alignment: .bottom) {
             AtlasTabBar(selected: $selected)
         }
     }
@@ -65,13 +68,23 @@ struct AtlasTabBar: View {
 
     var hairline: CGFloat { 1.0 / max(scale, 2) } // crisp
 
+    private var bottomInset: CGFloat {
+        #if canImport(UIKit)
+        return UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?.safeAreaInsets.bottom ?? 0
+        #else
+        return 0
+        #endif
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Top divider (muted, scheme-aware)
             Rectangle()
                 .fill(AtlasTheme.dividerColor)
                 .frame(height: hairline)
-                .ignoresSafeArea()
 
             HStack {
                 AtlasTabButton(spec: tabSpecs[0], selected: $selected)
@@ -85,30 +98,29 @@ struct AtlasTabBar: View {
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .padding(.bottom, 12)
-            .background(
-                // Subtle surface gradient to match cards/sheets
-                LinearGradient(
-                    colors: [
-                        AtlasTheme.bgElevated.opacity(0.98),
-                        AtlasTheme.bgElevated.opacity(0.94)
-                    ],
-                    startPoint: .top, endPoint: .bottom
-                )
-                .overlay(
-                    Rectangle()
-                        .fill(LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.05),
-                                Color.clear
-                            ],
-                            startPoint: .top, endPoint: .bottom
-                        ))
-                        .frame(height: 12)
-                        .frame(maxHeight: .infinity, alignment: .top)
-                )
-            )
         }
-        .ignoresSafeArea(edges: .bottom)
+        .background(
+            // Subtle surface gradient to match cards/sheets
+            LinearGradient(
+                colors: [
+                    AtlasTheme.bgElevated.opacity(0.98),
+                    AtlasTheme.bgElevated.opacity(0.94)
+                ],
+                startPoint: .top, endPoint: .bottom
+            )
+            .overlay(
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.05), .clear],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                    .frame(height: 12)
+                    .frame(maxHeight: .infinity, alignment: .top)
+            )
+            .ignoresSafeArea(edges: .bottom)
+        )
     }
 }
 

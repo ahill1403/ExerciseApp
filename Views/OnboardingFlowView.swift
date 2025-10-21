@@ -359,8 +359,6 @@ private struct PlanChoiceStep: View {
     let plan: WeeklyPlan
     @Binding var decision: OnboardingViewModel.PlanDecision?
 
-    private let weekdaySymbols = Calendar.current.shortWeekdaySymbols
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Kickstart your weekly plan")
@@ -376,36 +374,21 @@ private struct PlanChoiceStep: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(plan.days.keys.sorted(), id: \.self) { day in
-                        let focus = plan.days[day]?.joined(separator: ", ") ?? "Rest"
-                        HStack {
-                            Text(label(for: day).uppercased())
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 44, alignment: .leading)
-                            Text(focus)
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                        }
-                    }
-                }
-                .padding(14)
-                .background(AtlasTheme.gradient.opacity(0.16), in: RoundedRectangle(cornerRadius: 14))
+                WeekPlanGrid(plan: plan)
+                    .disabled(true)
             }
 
             VStack(spacing: 12) {
                 PlanDecisionRow(
                     title: "Use AtlasFit’s recommended plan",
-                    message: "Auto-fill my week so I can start training right away.",
+                    message: "Auto-fill my calendar with suggested workouts.",
                     icon: "sparkles",
                     isSelected: decision == .recommended
                 ) { decision = .recommended }
 
                 PlanDecisionRow(
                     title: "I’ll build my own plan",
-                    message: "I’d rather customise each day myself in the planner.",
+                    message: "Let me start with a blank week and customise everything.",
                     icon: "square.and.pencil",
                     isSelected: decision == .custom
                 ) { decision = .custom }
@@ -417,12 +400,8 @@ private struct PlanChoiceStep: View {
         }
         .padding(16)
     }
-
-    private func label(for day: Int) -> String {
-        let idx = (day - 1 + weekdaySymbols.count) % weekdaySymbols.count
-        return weekdaySymbols[idx]
-    }
 }
+
 
 private struct PlanDecisionRow: View {
     let title: String

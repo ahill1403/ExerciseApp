@@ -32,11 +32,7 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     var visibleSteps: [Step] {
-        var steps: [Step] = [.goal, .experience, .frequency, .reminder, .physique]
-        if data.experience != .novice {
-            steps.append(.plan)
-        }
-        return steps
+        [.goal, .experience, .frequency, .reminder, .physique, .plan]
     }
 
     var progress: (value: Double, total: Double) {
@@ -69,15 +65,11 @@ final class OnboardingViewModel: ObservableObject {
 
         switch step {
         case .physique:
-            if data.experience == .novice {
-                complete(applyRecommended: true)
-            } else {
-                planDecision = nil
-                recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
-                step = .plan
-            }
+            recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
+            planDecision = data.experience == .novice ? .recommended : nil
+            step = .plan
         case .plan:
-            let apply = (planDecision == .recommended)
+            let apply = (planDecision ?? .recommended) == .recommended
             complete(applyRecommended: apply)
         default:
             step = Step(rawValue: step.rawValue + 1) ?? .done

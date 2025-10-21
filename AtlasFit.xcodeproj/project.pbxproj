@@ -24,6 +24,7 @@
 		9C85FF552E7350330085CEC1 /* StartWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */; };
 		9C85FF572E73504D0085CEC1 /* ProgressDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */; };
 		9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */; };
+		CCC5A44AC889468EB63BB4C6D2738959 /* WeekPlanGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +45,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekPlanGrid.swift; sourceTree = "<group>"; };
 		9C35F6EC2E70B349006EC7E2 /* AtlasFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C35F6F12E70B349006EC7E2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		9C35F6FC2E70B34A006EC7E2 /* AtlasFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -64,6 +66,7 @@
 		9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartWorkoutView.swift; sourceTree = "<group>"; };
 		9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDashboardView.swift; sourceTree = "<group>"; };
 		9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingExperienceMatrixView.swift; sourceTree = "<group>"; };
+		FF6C7AC3B2144E5B9C807337413E7898 /* WorkoutCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutCatalog.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -131,6 +134,7 @@
 				9C35F6FF2E70B34A006EC7E2 /* AtlasFitTests */,
 				9C35F7092E70B34A006EC7E2 /* AtlasFitUITests */,
 				9C35F6ED2E70B349006EC7E2 /* Products */,
+				9C6FA7CB2EABCC2600B6FEC9 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -176,10 +180,19 @@
 				9C85FF322E73404B0085CEC1 /* OnboardingFlowView.swift */,
 				9C85FF302E7340420085CEC1 /* WelcomeView.swift */,
 				9C35F71E2E70B452006EC7E2 /* WeeklyPlannerView.swift */,
+				17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */,
 				9C35F6F12E70B349006EC7E2 /* ContentView.swift */,
 				9C85FF3A2E7340C80085CEC1 /* EditProfileView.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		9C6FA7CB2EABCC2600B6FEC9 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				FF6C7AC3B2144E5B9C807337413E7898 /* WorkoutCatalog.swift */,
+			);
+			name = "Recovered References";
 			sourceTree = "<group>";
 		};
 		9C7A69962E8F060F00BA5C4C /* Shell */ = {
@@ -353,6 +366,7 @@
 				9C35F6F22E70B349006EC7E2 /* ContentView.swift in Sources */,
 				9C85FF352E73405B0085CEC1 /* LoginView.swift in Sources */,
 				9C35F71F2E70B459006EC7E2 /* WeeklyPlannerView.swift in Sources */,
+				CCC5A44AC889468EB63BB4C6D2738959 /* WeekPlanGrid.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
