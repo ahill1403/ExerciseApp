@@ -57,7 +57,7 @@ struct EditProfileView: View {
                                 Text(area.displayName)
                                     .font(.subheadline.weight(.semibold))
                                 Picker("Experience", selection: Binding(
-                                    get: { vm.experienceByArea[area] ?? .novice },
+                                    get: { vm.experienceByArea[area] ?? .beginner },
                                     set: { vm.experienceByArea[area] = $0 }
                                 )) {
                                     ForEach(TrainingExperience.allCases) { option in

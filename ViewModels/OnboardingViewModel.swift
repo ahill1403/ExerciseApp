@@ -11,14 +11,14 @@ import SwiftUI
 @MainActor
 final class OnboardingViewModel: ObservableObject {
     @Published var data = OnboardingData()
-    @Published var step: Step = .goal
+    @Published var step: Step = .experience
     @Published var notificationsAuthorized = false
     @Published var recommendedPlan: WeeklyPlan?
     @Published var planDecision: PlanDecision?
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     enum Step: Int, CaseIterable {
-        case goal, experience, frequency, reminder, physique, plan, done
+        case experience, goal, frequency, reminder, physique, plan, done
     }
 
     enum PlanDecision { case recommended, custom }
@@ -32,7 +32,12 @@ final class OnboardingViewModel: ObservableObject {
     }
 
     var visibleSteps: [Step] {
-        [.goal, .experience, .frequency, .reminder, .physique, .plan]
+        var steps: [Step] = [.experience]
+        if data.experience != .beginner {
+            steps += [.goal, .frequency, .reminder, .physique]
+        }
+        steps.append(.plan)
+        return steps
     }
 
     var progress: (value: Double, total: Double) {
@@ -64,9 +69,19 @@ final class OnboardingViewModel: ObservableObject {
         }
 
         switch step {
+        case .experience:
+            if data.experience == .beginner {
+                recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
+                planDecision = .recommended
+                step = .plan
+            } else {
+                planDecision = nil
+                recommendedPlan = nil
+                step = .goal
+            }
         case .physique:
             recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
-            planDecision = data.experience == .novice ? .recommended : nil
+            planDecision = nil
             step = .plan
         case .plan:
             let apply = (planDecision ?? .recommended) == .recommended
@@ -78,10 +93,31 @@ final class OnboardingViewModel: ObservableObject {
 
     func back() {
         if step == .plan {
-            planDecision = nil
-            step = .physique
+            if data.experience == .beginner {
+                step = .experience
+            } else {
+                planDecision = nil
+                step = .physique
+            }
         } else if step.rawValue > 0 {
-            step = Step(rawValue: step.rawValue - 1) ?? .goal
+            step = Step(rawValue: step.rawValue - 1) ?? .experience
+        }
+    }
+
+    func skip() {
+        switch step {
+        case .goal, .frequency:
+            next()
+        case .reminder:
+            data.wantsNotifications = false
+            next()
+        case .physique:
+            next()
+        case .plan:
+            planDecision = .recommended
+            next()
+        default:
+            break
         }
     }
 

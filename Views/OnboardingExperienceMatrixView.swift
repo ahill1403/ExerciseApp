@@ -22,7 +22,7 @@ struct OnboardingExperienceMatrixView: View {
                         .minimumScaleFactor(0.85)
 
                     Picker("", selection: Binding(
-                        get: { experienceByArea[area, default: .novice] },
+                        get: { experienceByArea[area, default: .beginner] },
                         set: { experienceByArea[area] = $0 }
                     )) {
                         ForEach(TrainingExperience.allCases) {

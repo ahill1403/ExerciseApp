@@ -8,7 +8,7 @@ struct WorkoutDefinition: Identifiable, Hashable {
     let equipment: String
     let summary: String
 
-    init(name: String, area: FitnessArea, minimumExperience: TrainingExperience = .novice, equipment: String, summary: String) {
+    init(name: String, area: FitnessArea, minimumExperience: TrainingExperience = .beginner, equipment: String, summary: String) {
         self.name = name
         self.area = area
         self.minimumExperience = minimumExperience
@@ -53,28 +53,28 @@ final class WorkoutCatalog {
             WorkoutDefinition(
                 name: "Push-Ups",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Bodyweight",
                 summary: "2-3 sets to comfortable fatigue keeping a strong plank line."
             ),
             WorkoutDefinition(
                 name: "Single-Arm Dumbbell Row",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Dumbbell + bench",
                 summary: "3 sets of 8-10 per arm focusing on squeezing the back."
             ),
             WorkoutDefinition(
                 name: "Lat Pulldown",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Cable machine",
                 summary: "Keep core tight for 3 sets of 10-12 reps drawing elbows toward ribs."
             ),
             WorkoutDefinition(
                 name: "Goblet Squat",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Dumbbell or kettlebell",
                 summary: "Sit tall for 3 sets of 10 reps to build leg strength and posture."
             ),
@@ -88,28 +88,28 @@ final class WorkoutCatalog {
             WorkoutDefinition(
                 name: "Walking Lunge",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Bodyweight or light dumbbells",
                 summary: "Perform 3 x 12 steps per leg for balance and single-leg strength."
             ),
             WorkoutDefinition(
                 name: "Seated Shoulder Press",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Dumbbells",
                 summary: "3 sets of 8-10 reps keeping ribs down and shoulders strong."
             ),
             WorkoutDefinition(
                 name: "Cable Triceps Pressdown",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Cable machine",
                 summary: "3 x 12 reps with elbows close to your sides for arm definition."
             ),
             WorkoutDefinition(
                 name: "Hammer Curl",
                 area: .strength,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Dumbbells",
                 summary: "3 x 12 reps using a neutral grip to build forearm and biceps strength."
             ),
@@ -118,42 +118,42 @@ final class WorkoutCatalog {
             WorkoutDefinition(
                 name: "Cat-Cow Flow",
                 area: .mobility,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Yoga mat",
                 summary: "Move through 10 gentle reps to warm up the spine and core."
             ),
             WorkoutDefinition(
                 name: "World's Greatest Stretch",
                 area: .mobility,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Bodyweight",
                 summary: "Alternate sides for 6 slow reps to open hips, hamstrings and thoracic spine."
             ),
             WorkoutDefinition(
                 name: "Hip Flexor Stretch",
                 area: .mobility,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Mat or pad",
                 summary: "Hold each side 30 seconds to ease desk-tight hips."
             ),
             WorkoutDefinition(
                 name: "90/90 Hip Switch",
                 area: .mobility,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Bodyweight",
                 summary: "Perform 8 controlled switches keeping torso tall for hip rotation."
             ),
             WorkoutDefinition(
                 name: "Thoracic Spine Opener",
                 area: .mobility,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Foam roller",
                 summary: "Roll upper back for 90 seconds, pausing on sticky spots."
             ),
             WorkoutDefinition(
                 name: "Child's Pose Breathing",
                 area: .mobility,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Yoga mat",
                 summary: "3 deep-breath rounds to relax shoulders and lower back."
             ),
@@ -169,7 +169,7 @@ final class WorkoutCatalog {
             WorkoutDefinition(
                 name: "Medicine Ball Slam",
                 area: .power,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Medicine ball",
                 summary: "3 x 12 slams focusing on speed and full-body power."
             ),
@@ -220,14 +220,14 @@ final class WorkoutCatalog {
             WorkoutDefinition(
                 name: "Jump Rope Sprint Ladder",
                 area: .hiit,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Jump rope",
                 summary: "5-minute ladder alternating 30s fast jumps with 30s brisk marching."
             ),
             WorkoutDefinition(
                 name: "Bodyweight Power Circuit",
                 area: .hiit,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Mat + timer",
                 summary: "3 rounds of squats, mountain climbers, and skaters for 40s on / 20s off."
             ),
@@ -236,28 +236,28 @@ final class WorkoutCatalog {
             WorkoutDefinition(
                 name: "Brisk Outdoor Walk",
                 area: .neat,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Comfortable shoes",
                 summary: "30-40 minutes at a pace that elevates heart rate but allows conversation."
             ),
             WorkoutDefinition(
                 name: "Easy Cycling",
                 area: .neat,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Bike or spin bike",
                 summary: "35 minutes of smooth pedaling in zone 2 heart-rate effort."
             ),
             WorkoutDefinition(
                 name: "Light Jog",
                 area: .neat,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Running shoes",
                 summary: "25 minutes of easy running focusing on relaxed breathing."
             ),
             WorkoutDefinition(
                 name: "Elliptical Cruise",
                 area: .neat,
-                minimumExperience: .novice,
+                minimumExperience: .beginner,
                 equipment: "Elliptical trainer",
                 summary: "30 minutes steady with light resistance to boost daily movement."
             ),

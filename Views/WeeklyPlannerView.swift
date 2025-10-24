@@ -247,7 +247,7 @@ private struct WorkoutPickerSheet: View {
         var unique: [WorkoutDefinition] = []
         var seen = Set<String>()
         for area in areas {
-            let experience = profile?.experienceByArea[area] ?? profile?.experience ?? .novice
+            let experience = profile?.experienceByArea[area] ?? profile?.experience ?? .beginner
             let candidates = WorkoutCatalog.shared.allWorkouts(for: area, experience: experience)
             for workout in candidates {
                 if seen.insert(workout.id).inserted {

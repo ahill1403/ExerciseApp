@@ -198,7 +198,7 @@ final class PlannerStore {
                 if secondary != primary {
                     focus.append(secondary)
                 }
-            } else if primary != .mobility && mobilityExperience == .novice {
+            } else if primary != .mobility && mobilityExperience == .beginner {
                 focus.append(.mobility)
             }
 
