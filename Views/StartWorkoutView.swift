@@ -20,7 +20,12 @@ struct StartWorkoutView: View {
     @State private var editUnits: Units = .lbs
     @State private var showEditSheet = false
 
-    private let gridCols: [GridItem] = [GridItem(.flexible()), GridItem(.flexible())]
+    @State private var planSnapshot: WeeklyPlan = PlannerStore.shared.load()
+
+    private let templateColumns: [GridItem] = [
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14)
+    ]
 
     var body: some View {
         ZStack {
@@ -34,7 +39,13 @@ struct StartWorkoutView: View {
         }
         .navigationTitle("Start Workout")
         .navigationBarTitleDisplayMode(.inline)
-        .onAppear { vm.refreshPlanSuggestion() }
+        .onAppear {
+            vm.refreshPlanSuggestion()
+            planSnapshot = PlannerStore.shared.load()
+        }
+        .onChange(of: vm.planSuggestion) { _ in
+            planSnapshot = PlannerStore.shared.load()
+        }
         .toolbar {
             if vm.isLogging {
                 ToolbarItem(placement: .topBarLeading) {
@@ -70,34 +81,10 @@ struct StartWorkoutView: View {
     // MARK: - Template Picker
     private var templatePicker: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                suggestionCard
-
-                Text("Pick a template")
-                    .font(.title2.bold())
-                    .gradientForeground()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                LazyVGrid(columns: gridCols, spacing: 12) {
-                    ForEach(vm.templates, id: \.self) { t in
-                        Button { vm.start(template: t) } label: {
-                            HStack {
-                                Image(systemName: "bolt.fill")
-                                Text(t)
-                                Spacer()
-                            }
-                            .padding(14)
-                            .frame(maxWidth: .infinity)
-                            .background(AtlasTheme.gradient.opacity(0.16),
-                                        in: RoundedRectangle(cornerRadius: 16))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-
-                Button("Start Empty Session") { vm.start(template: "Custom") }
-                    .buttonStyle(AtlasButtonStyle())
-                    .padding(.top, 8)
+            VStack(spacing: 24) {
+                planRecommendationSection
+                templatesSection
+                emptySessionSection
             }
             .padding(20)
         }
@@ -105,67 +92,137 @@ struct StartWorkoutView: View {
     }
 
     @ViewBuilder
-    private var suggestionCard: some View {
-        if let suggestion = vm.planSuggestion {
-            let focusNames = suggestion.areas.map { $0.displayName }
-            let focusSummary = focusNames.joined(separator: " • ")
-            let dayName = weekdayName(for: suggestion.day)
+    private var planRecommendationSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Label("From your weekly planner", systemImage: "calendar")
+                .font(.title3.bold())
+                .gradientForeground()
 
-            VStack(alignment: .leading, spacing: 12) {
-                Text(suggestion.isToday ? "Today's plan" : suggestion.offset == 1 ? "Tomorrow's plan" : "Next workout")
-                    .font(.headline)
-                    .gradientForeground()
+            WeekSchedulePeek(plan: planSnapshot)
 
-                if suggestion.isToday {
+            if let suggestion = vm.planSuggestion,
+               let firstTemplate = suggestion.templates.first,
+               let templateInfo = vm.info(for: firstTemplate) {
+                let dayName = weekdayName(for: suggestion.day)
+                let focusSummary = suggestion.areas.map { $0.displayName }.joined(separator: " • ")
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(suggestion.isToday ? "Today's recommendation" : (suggestion.offset == 1 ? "Tomorrow's recommendation" : "\(dayName)'s recommendation"))
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
                     Text(focusSummary)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                } else {
-                    Text("\(dayName) • \(focusSummary)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
                 }
 
-                HStack {
-                    ForEach(focusNames, id: \.self) { name in
-                        Text(name)
+                HStack(spacing: 10) {
+                    ForEach(suggestion.areas, id: \.self) { area in
+                        Text(area.displayName)
                             .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 10)
+                            .padding(.horizontal, 12)
                             .padding(.vertical, 6)
                             .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
                     }
+                    Spacer(minLength: 0)
                 }
 
-                VStack(spacing: 8) {
-                    ForEach(suggestion.templates, id: \.self) { template in
-                        Button {
-                            vm.start(template: template)
-                        } label: {
-                            HStack {
-                                Image(systemName: "play.fill")
-                                Text(template)
-                                Spacer()
-                                if template == suggestion.templates.first {
-                                    Text("Recommended")
-                                        .font(.caption2.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            .padding(12)
-                            .frame(maxWidth: .infinity)
-                            .background(AtlasTheme.gradient.opacity(0.16), in: RoundedRectangle(cornerRadius: 14))
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+                Text("\(templateInfo.duration) • \(templateInfo.equipment)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                Text("Based on your weekly plan. You can always adjust days in Planner.")
+                Text(templateInfo.summary)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+
+                Button {
+                    vm.start(template: firstTemplate)
+                } label: {
+                    Label(suggestion.isToday ? "Start Today's Plan" : "Start \(dayName)", systemImage: "play.fill")
+                }
+                .buttonStyle(AtlasButtonStyle())
+
+                if suggestion.templates.count > 1 {
+                    Divider().opacity(0.12)
+
+                    Text("Other planner-aligned options")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+
+                    VStack(spacing: 6) {
+                        ForEach(Array(suggestion.templates.dropFirst()), id: \.self) { name in
+                            Button {
+                                vm.start(template: name)
+                            } label: {
+                                HStack {
+                                    Image(systemName: "arrow.turn.down.right")
+                                    Text(name)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .background(AtlasTheme.cardFill.opacity(0.6), in: RoundedRectangle(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            } else {
+                Text("Set at least one training day in Weekly Planner to unlock a daily recommendation here.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(16)
-            .glassCard(cornerRadius: 18)
+
+            Text("Manage your schedule anytime from the Plan tab.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
+        .padding(20)
+        .glassCard(cornerRadius: 22)
+    }
+
+    private var templatesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Choose a template")
+                .font(.title3.bold())
+                .gradientForeground()
+
+            Text("Curated sessions you can start in one tap.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            LazyVGrid(columns: templateColumns, spacing: 14) {
+                ForEach(vm.templates) { template in
+                    Button {
+                        vm.start(template: template.name)
+                    } label: {
+                        TemplateCard(template: template)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .glassCard(cornerRadius: 22)
+    }
+
+    private var emptySessionSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Prefer to freestyle?")
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text("Start an empty log and build the workout as you go.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            Button("Start Empty Session") {
+                vm.start(template: "Custom")
+            }
+            .buttonStyle(AtlasButtonStyle())
+        }
+        .padding(20)
+        .glassCard(cornerRadius: 22)
     }
 
     private func weekdayName(for day: Int) -> String {
@@ -254,6 +311,95 @@ struct StartWorkoutView: View {
             copy.sets = ex.sets.map { SetEntry(reps: $0.reps, weight: $0.weight, units: $0.units) }
             return copy
         }
+    }
+}
+
+private struct TemplateCard: View {
+    let template: StartWorkoutViewModel.TemplateInfo
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(template.name)
+                .font(.headline)
+                .foregroundStyle(.primary)
+
+            Text(template.focus)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+
+            Text("\(template.duration) • \(template.equipment)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text(template.summary)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(3)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AtlasTheme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+    }
+}
+
+private struct WeekSchedulePeek: View {
+    let plan: WeeklyPlan
+
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.firstWeekday = 1
+        return cal
+    }
+
+    private var today: Int {
+        Calendar.current.component(.weekday, from: Date())
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(1...7, id: \.self) { day in
+                let label = shortLabel(for: day)
+                let hasFocus = !plan.focusAreas(for: day).isEmpty
+                let isToday = day == today
+
+                Text(label)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(hasFocus ? Color.white : .secondary)
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(hasFocus ? AtlasTheme.gradient : AtlasTheme.cardFill)
+                    )
+                    .overlay(
+                        Circle()
+                            .strokeBorder(isToday ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: isToday ? 2 : 1)
+                    )
+                    .accessibilityLabel(accessibilityLabel(for: day, hasFocus: hasFocus))
+            }
+        }
+    }
+
+    private func shortLabel(for day: Int) -> String {
+        let symbols = calendar.shortWeekdaySymbols
+        let index = (day - 1 + symbols.count) % symbols.count
+        return String(symbols[index].prefix(1))
+    }
+
+    private func accessibilityLabel(for day: Int, hasFocus: Bool) -> String {
+        let name = calendar.weekdaySymbols[(day - 1 + calendar.weekdaySymbols.count) % calendar.weekdaySymbols.count]
+        var components = [name]
+        components.append(hasFocus ? "training day" : "rest day")
+        if day == today { components.append("today") }
+        return components.joined(separator: ", ")
     }
 }
 
