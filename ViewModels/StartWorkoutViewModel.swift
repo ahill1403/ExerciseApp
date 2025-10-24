@@ -15,28 +15,78 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published var showAddExercise = false
     @Published var newExerciseName = ""
 
-    let templates = [
-        "Full Body",
-        "Upper Body",
-        "Lower Body",
-        "Push",
-        "Pull",
-        "Legs",
-        "Core",
-        "Mobility Flow",
-        "Quick Interval Blast",
-        "Power Complex",
-        "Steady Walk",
-        "Custom"
+    struct TemplateInfo: Identifiable, Hashable {
+        let id = UUID()
+        let name: String
+        let focus: String
+        let duration: String
+        let equipment: String
+        let summary: String
+    }
+
+    let templates: [TemplateInfo] = [
+        TemplateInfo(
+            name: "Foundations Strength",
+            focus: "Strength",
+            duration: "45 min",
+            equipment: "Dumbbells + bench",
+            summary: "Balanced pushes, pulls and core finish to build full-body strength."
+        ),
+        TemplateInfo(
+            name: "Upper Body Push",
+            focus: "Chest & Shoulders",
+            duration: "35 min",
+            equipment: "Bench + dumbbells",
+            summary: "Superset pressing variations with accessory triceps work."
+        ),
+        TemplateInfo(
+            name: "Lower Body Strength",
+            focus: "Legs & Glutes",
+            duration: "40 min",
+            equipment: "Barbell or dumbbells",
+            summary: "Squat, hinge and lunge sequence to drive lower-body power."
+        ),
+        TemplateInfo(
+            name: "Mobility Reset",
+            focus: "Mobility",
+            duration: "20 min",
+            equipment: "Mat + foam roller",
+            summary: "Gentle flow to open tight hips, spine and shoulders."
+        ),
+        TemplateInfo(
+            name: "Interval Ignite",
+            focus: "HIIT",
+            duration: "25 min",
+            equipment: "Treadmill or open space",
+            summary: "Alternating sprint and recovery blocks for conditioning."
+        ),
+        TemplateInfo(
+            name: "Power Circuit",
+            focus: "Explosive Power",
+            duration: "30 min",
+            equipment: "Kettlebell + medicine ball",
+            summary: "Dynamic jumps and loaded power drills to train speed."
+        ),
+        TemplateInfo(
+            name: "Recovery Walk",
+            focus: "NEAT / LISS",
+            duration: "30 min",
+            equipment: "Comfortable shoes",
+            summary: "Guided brisk walk with posture resets and breathing cues."
+        )
     ]
 
     private let templateMapping: [FitnessArea: [String]] = [
-        .strength: ["Full Body", "Upper Body", "Lower Body", "Push", "Pull", "Legs"],
-        .mobility: ["Mobility Flow", "Full Body"],
-        .power: ["Power Complex", "Full Body"],
-        .hiit: ["Quick Interval Blast", "Full Body"],
-        .neat: ["Steady Walk", "Mobility Flow"]
+        .strength: ["Foundations Strength", "Upper Body Push", "Lower Body Strength"],
+        .mobility: ["Mobility Reset"],
+        .power: ["Power Circuit", "Foundations Strength"],
+        .hiit: ["Interval Ignite"],
+        .neat: ["Recovery Walk", "Mobility Reset"]
     ]
+
+    func info(for templateName: String) -> TemplateInfo? {
+        templates.first { $0.name == templateName }
+    }
 
     private let calendar = Calendar.current
 
@@ -167,8 +217,8 @@ final class StartWorkoutViewModel: ObservableObject {
                 options.append(contentsOf: mapped)
             }
         }
-        if options.isEmpty {
-            options.append("Full Body")
+        if options.isEmpty, let first = templates.first?.name {
+            options.append(first)
         }
         var unique: [String] = []
         for option in options {
