@@ -60,7 +60,7 @@ struct AtlasTabRoot: View {
     }
 }
 
-// MARK: - Bottom Bar (edge-to-edge, non-floating)
+// MARK: - Bottom Bar
 
 struct AtlasTabBar: View {
     @Environment(\.displayScale) private var scale
@@ -96,15 +96,15 @@ struct AtlasTabBar: View {
                 AtlasTabButton(spec: tabSpecs[4], selected: $selected)
             }
             .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.top, 18)
+            .padding(.bottom, 5)
         }
         .background(
             // Subtle surface gradient to match cards/sheets
             LinearGradient(
                 colors: [
-                    AtlasTheme.bgElevated.opacity(0.98),
-                    AtlasTheme.bgElevated.opacity(0.94)
+                    AtlasTheme.bgElevated.opacity(0.90),
+                    AtlasTheme.bgElevated.opacity(0.98)
                 ],
                 startPoint: .top, endPoint: .bottom
             )
@@ -116,7 +116,7 @@ struct AtlasTabBar: View {
                             startPoint: .top, endPoint: .bottom
                         )
                     )
-                    .frame(height: 12)
+                    .frame(height: 50)
                     .frame(maxHeight: .infinity, alignment: .top)
             )
             .ignoresSafeArea(edges: .bottom)
@@ -136,7 +136,7 @@ private struct AtlasTabButton: View {
         Button {
             selected = spec.tab
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 0) {
                 Image(systemName: spec.systemImage)
                     .font(.system(size: 20, weight: .semibold))
                     .symbolVariant(isSelected ? .fill : .none)
@@ -169,7 +169,7 @@ private struct CenterHomeButton: View {
                     .fill(AtlasTheme.gradient)
                     .frame(width: 56, height: 56)
                     .overlay(Circle().strokeBorder(Color.white.opacity(0.12)))
-                    .glow(AtlasTheme.accentGreen, radius: 10)
+                    .glow(AtlasTheme.accentGreen, radius: 15)
 
                 Image(systemName: "house.fill")
                     .font(.system(size: 22, weight: .bold))
