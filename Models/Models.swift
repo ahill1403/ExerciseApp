@@ -13,8 +13,29 @@ enum FitnessGoal: String, Codable, CaseIterable, Identifiable {
 }
 
 enum TrainingExperience: String, Codable, CaseIterable, Identifiable {
-    case novice = "Novice", intermediate = "Intermediate", advanced = "Advanced"
+    case beginner = "Beginner", intermediate = "Intermediate", advanced = "Advanced"
     var id: String { rawValue }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        if let value = TrainingExperience(rawValue: rawValue) {
+            self = value
+        } else if rawValue.lowercased() == "novice" {
+            self = .beginner
+        } else {
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Unexpected training experience value: \(rawValue)"
+            )
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 enum FitnessArea: String, Codable, CaseIterable, Identifiable {
@@ -55,7 +76,7 @@ enum FitnessArea: String, Codable, CaseIterable, Identifiable {
 
 extension FitnessArea {
     static var defaultExperienceLevels: [FitnessArea: TrainingExperience] {
-        Dictionary(uniqueKeysWithValues: Self.allCases.map { ($0, .novice) })
+        Dictionary(uniqueKeysWithValues: Self.allCases.map { ($0, .beginner) })
     }
 }
 
@@ -83,7 +104,7 @@ enum AgeRange: String, Codable, CaseIterable, Identifiable {
 
 struct OnboardingData {
     var goal: FitnessGoal = .general
-    var experience: TrainingExperience = .novice
+    var experience: TrainingExperience = .beginner
     var experienceByArea: [FitnessArea: TrainingExperience] = FitnessArea.defaultExperienceLevels
     var daysPerWeek: Int = 3
     var minutesPerDay: Int = 45
@@ -116,7 +137,7 @@ extension TrainingExperience {
     /// Relative order used for filtering catalog workouts and prioritising focus areas.
     var levelIndex: Int {
         switch self {
-        case .novice: return 0
+        case .beginner: return 0
         case .intermediate: return 1
         case .advanced: return 2
         }

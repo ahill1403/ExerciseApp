@@ -22,12 +22,10 @@ struct OnboardingFlowView: View {
                     ScrollView {
                         Group {
                             switch vm.step {
-                            case .goal: GoalStep(goal: $vm.data.goal)
                             case .experience:
-                                ExperienceStep(
-                                    experience: $vm.data.experience,
-                                    experienceByArea: $vm.data.experienceByArea
-                                )
+                                ExperienceStep(experience: $vm.data.experience)
+                            case .goal:
+                                GoalStep(goal: $vm.data.goal)
                             case .frequency:
                                 FrequencyStep(
                                     days: $vm.data.daysPerWeek,
@@ -50,7 +48,7 @@ struct OnboardingFlowView: View {
                             case .done:
                                 VStack(spacing: 16) {
                                     Text("You’re set!").font(.title.bold()).gradientForeground()
-                                    if vm.data.experience == .novice || vm.planDecision == .recommended {
+                                    if vm.data.experience == .beginner || vm.planDecision == .recommended {
                                         Text("Your weekly plan is ready to go. Check it anytime under Planner.")
                                             .foregroundStyle(.secondary)
                                     } else {
@@ -67,17 +65,27 @@ struct OnboardingFlowView: View {
                     }
                     .scrollIndicators(.hidden)
                     
-                    HStack(spacing: 12) {
-                        if vm.step != .goal && vm.step != .done {
-                            Button("Back") { vm.back() }
-                                .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
-                                .frame(maxWidth: 160)
-                        }
+                    VStack(spacing: 12) {
                         if vm.step != .done {
                             let title = vm.step == .plan ? "Finish" : "Continue"
                             Button(title) { vm.next() }
                                 .buttonStyle(AtlasButtonStyle())
                                 .disabled(!vm.canContinue)
+                                .frame(maxWidth: .infinity)
+                        }
+
+                        HStack(spacing: 12) {
+                            if vm.step != .experience && vm.step != .done {
+                                Button("Back") { vm.back() }
+                                    .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
+                                    .frame(maxWidth: 160)
+                            }
+
+                            if vm.step != .experience && vm.step != .done {
+                                Button("Skip") { vm.skip() }
+                                    .buttonStyle(AtlasButtonStyle())
+                                    .frame(maxWidth: 160)
+                            }
                         }
                     }
                     .padding(.horizontal, 20)
@@ -117,46 +125,20 @@ private struct GoalStep: View {
 
 private struct ExperienceStep: View {
     @Binding var experience: TrainingExperience
-    @Binding var experienceByArea: [FitnessArea: TrainingExperience]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Training experience").font(.title2.bold()).gradientForeground()
-            
+
             Text("Start with your overall comfort level.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            
+
             ForEach(TrainingExperience.allCases) { e in
                 SelectRow(title: e.rawValue, isSelected: experience == e) { experience = e }
             }
-            
-            Divider()
-                .overlay(Color.white.opacity(0.2))
-                .padding(.vertical, 4)
-            
-            Text("Dial in each fitness pillar")
-                .font(.headline)
-            
-            VStack(spacing: 12) {
-                ForEach(FitnessArea.allCases) { area in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(area.displayName)
-                            .font(.subheadline.weight(.semibold))
-                        Picker("Experience", selection: Binding(
-                            get: { experienceByArea[area] ?? .novice },
-                            set: { experienceByArea[area] = $0 }
-                        )) {
-                            ForEach(TrainingExperience.allCases) { option in
-                                Text(option.rawValue).tag(option)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                    }
-                }
-            }
-            
-            Text("We’ll use this to suggest when to emphasize or skip certain areas.")
+
+            Text("We’ll use this to tailor your workouts.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -216,12 +198,31 @@ private struct PhysiqueStep: View {
     @Binding var weight: Double
     @Binding var units: Units
     
-    @State private var heightMode: HeightMode = .cm
-    @State private var feet: Int = 5
-    @State private var inches: Int = 9
+    @State private var heightMode: HeightMode
+    @State private var feet: Int
+    @State private var inches: Int
     
     enum HeightMode: String, CaseIterable, Identifiable { case cm = "cm", imperial = "ft/in"; var id: String { rawValue } }
     
+    init(
+        gender: Binding<Gender>,
+        ageRange: Binding<AgeRange>,
+        heightInCm: Binding<Double>,
+        weight: Binding<Double>,
+        units: Binding<Units>
+    ) {
+        _gender = gender
+        _ageRange = ageRange
+        _heightInCm = heightInCm
+        _weight = weight
+        _units = units
+
+        let totalInches = Int(round(heightInCm.wrappedValue / 2.54))
+        _heightMode = State(initialValue: .imperial)
+        _feet = State(initialValue: max(0, totalInches / 12))
+        _inches = State(initialValue: max(0, totalInches % 12))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("About you").font(.title2.bold()).gradientForeground()
@@ -320,12 +321,6 @@ private struct PhysiqueStep: View {
             }
         }
         .padding(16)
-        .onAppear {
-            // Initialize imperial fields from cm if user flips modes
-            let totalInches = Int(round(heightInCm / 2.54))
-            feet = max(0, totalInches / 12)
-            inches = max(0, totalInches % 12)
-        }
     }
     
     private func updateCmFromImperial() {

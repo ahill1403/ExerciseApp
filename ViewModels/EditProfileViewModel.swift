@@ -12,7 +12,7 @@ import SwiftUI
 final class EditProfileViewModel: ObservableObject {
     // MARK: - Editable fields
     @Published var goal: FitnessGoal = .general
-    @Published var experience: TrainingExperience = .novice
+    @Published var experience: TrainingExperience = .beginner
     @Published var experienceByArea: [FitnessArea: TrainingExperience] = FitnessArea.defaultExperienceLevels
     @Published var daysPerWeek: Int = 3
     @Published var minutesPerDay: Int = 45
