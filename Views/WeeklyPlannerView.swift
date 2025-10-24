@@ -2,10 +2,18 @@ import SwiftUI
 import UserNotifications
 
 struct WeeklyPlannerView: View {
-    @State private var plan: WeeklyPlan = PlannerStore.shared.load()
+    @State private var plan: WeeklyPlan
+    @State private var expandedDay: Int
     @State private var alertMessage: String?
     @State private var editorSelection: DaySelection?
-    @State private var storedProfile: UserProfile? = WeeklyPlannerView.loadProfile()
+    @State private var storedProfile: UserProfile?
+
+    init() {
+        let storedPlan = PlannerStore.shared.load()
+        _plan = State(initialValue: storedPlan)
+        _expandedDay = State(initialValue: WeekPlanGrid.defaultExpandedDay(for: storedPlan))
+        _storedProfile = State(initialValue: WeeklyPlannerView.loadProfile())
+    }
 
     var body: some View {
         NavigationStack {
@@ -18,7 +26,7 @@ struct WeeklyPlannerView: View {
                                 subtitle: "Tap a day to review or adjust the workouts we’ve lined up for you"
                             )
 
-                            WeekPlanGrid(plan: plan) { day in
+                            WeekPlanGrid(plan: plan, expandedDay: $expandedDay) { day in
                                 editorSelection = DaySelection(day: day)
                             }
 
@@ -116,6 +124,7 @@ struct WeeklyPlannerView: View {
 
         let recommended = PlannerStore.shared.recommendedPlan(for: profile)
         plan = recommended
+        expandedDay = WeekPlanGrid.defaultExpandedDay(for: recommended)
         storedProfile = profile
         PlannerStore.shared.save(recommended)
         alertMessage = "Weekly plan updated using your profile."

@@ -23,6 +23,14 @@ final class OnboardingViewModel: ObservableObject {
 
     enum PlanDecision { case recommended, custom }
 
+    // MARK: - Path control (prevents progress bar from jumping on selection)
+    private let fullPath: [Step] = [.experience, .goal, .frequency, .reminder, .physique, .plan, .done]
+    private let beginnerPath: [Step] = [.experience, .frequency, .reminder, .done]
+
+    // We start with the full path. This will be swapped on Continue from .experience if Beginner is chosen.
+    private var path: [Step] = [.experience, .goal, .frequency, .reminder, .physique, .plan, .done]
+
+    // MARK: - Gating and progress
     var canContinue: Bool {
         switch step {
         case .goal, .experience, .frequency, .reminder, .physique: return true
@@ -31,30 +39,31 @@ final class OnboardingViewModel: ObservableObject {
         }
     }
 
+    /// Visible steps exclude `.done` so the bar fills to 100% on the final screen.
     var visibleSteps: [Step] {
-        var steps: [Step] = [.experience]
-        if data.experience != .beginner {
-            steps += [.goal, .frequency, .reminder, .physique]
-        }
-        steps.append(.plan)
-        return steps
+        path.filter { $0 != .done }
     }
 
     var progress: (value: Double, total: Double) {
+        // When on .done, show a completely full bar regardless of path length.
         if step == .done {
             let total = Double(visibleSteps.count + 1)
             return (total, total)
         }
+
         let steps = visibleSteps
         if let index = steps.firstIndex(of: step) {
             return (Double(index + 1), Double(steps.count))
         } else {
+            // Fallback: if step isn't in visibleSteps (shouldn't happen), show full.
             let total = Double(steps.count)
             return (total, total)
         }
     }
 
+    // MARK: - Navigation
     func next() {
+        // Handle notification authorization request timing
         if step == .reminder, data.wantsNotifications {
             NotificationManager.shared.authStatus { [weak self] status in
                 guard let self = self else { return }
@@ -70,48 +79,47 @@ final class OnboardingViewModel: ObservableObject {
 
         switch step {
         case .experience:
+            // Freeze the path only AFTER the user taps Continue on Experience.
             if data.experience == .beginner {
-                recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
+                // Beginner short path: Frequency → Reminder → Done
+                path = beginnerPath
+                // We’ll apply a recommended plan automatically at completion.
                 planDecision = .recommended
-                step = .plan
+                recommendedPlan = nil
             } else {
+                // Full path for non-beginner
+                path = fullPath
                 planDecision = nil
                 recommendedPlan = nil
-                step = .goal
             }
+            goToNextInPath()
+
         case .physique:
+            // Prepare a recommended plan before Plan step on the full path
             recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
             planDecision = nil
-            step = .plan
+            goToNextInPath()
+
         case .plan:
+            // Finalize with either recommended or custom plan
             let apply = (planDecision ?? .recommended) == .recommended
             complete(applyRecommended: apply)
+
         default:
-            step = Step(rawValue: step.rawValue + 1) ?? .done
+            goToNextInPath()
         }
     }
 
     func back() {
-        if step == .plan {
-            if data.experience == .beginner {
-                step = .experience
-            } else {
-                planDecision = nil
-                step = .physique
-            }
-        } else if step.rawValue > 0 {
-            step = Step(rawValue: step.rawValue - 1) ?? .experience
-        }
+        goToPreviousInPath()
     }
 
     func skip() {
         switch step {
-        case .goal, .frequency:
+        case .goal, .frequency, .physique:
             next()
         case .reminder:
             data.wantsNotifications = false
-            next()
-        case .physique:
             next()
         case .plan:
             planDecision = .recommended
@@ -121,12 +129,34 @@ final class OnboardingViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Path helpers
+    private func goToNextInPath() {
+        guard let idx = path.firstIndex(of: step) else { return }
+        let nextIdx = idx + 1
+        if nextIdx < path.count {
+            step = path[nextIdx]
+        } else {
+            step = .done
+        }
+    }
+
+    private func goToPreviousInPath() {
+        guard let idx = path.firstIndex(of: step) else { return }
+        let prevIdx = idx - 1
+        if prevIdx >= 0 {
+            step = path[prevIdx]
+        } else {
+            step = .experience
+        }
+    }
+
+    // MARK: - Completion
     private func complete(applyRecommended: Bool) {
         let profile = buildProfile()
+
         if let encoded = try? JSONEncoder().encode(profile) {
             UserDefaults.standard.set(encoded, forKey: "userProfile")
         }
-
         UserDefaults.standard.set(data.daysPerWeek, forKey: "weeklyGoal")
 
         if applyRecommended {
@@ -145,8 +175,8 @@ final class OnboardingViewModel: ObservableObject {
         step = .done
     }
 
+    // MARK: - Profile building
     private func buildProfile() -> UserProfile {
-        // Persist the user profile for now to UserDefaults; swap later for Core Data/CloudKit.
         let experienceByArea = FitnessArea.defaultExperienceLevels.merging(data.experienceByArea) { _, new in new }
 
         return UserProfile(

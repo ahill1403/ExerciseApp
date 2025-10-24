@@ -5,133 +5,259 @@ struct WeekPlanGrid: View {
     private let onSelectDay: ((Int) -> Void)?
     private let calendar: Calendar
     private let columns: [GridItem] = [
-        GridItem(.flexible(), spacing: 16),
-        GridItem(.flexible(), spacing: 16)
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
     ]
 
-    init(plan: WeeklyPlan, onSelectDay: ((Int) -> Void)? = nil) {
+    private let externalExpandedDay: Binding<Int>?
+    @State private var internalExpandedDay: Int
+
+    init(plan: WeeklyPlan, expandedDay: Binding<Int>, onSelectDay: ((Int) -> Void)? = nil) {
         self.plan = plan
         self.onSelectDay = onSelectDay
+        self.externalExpandedDay = expandedDay
+        _internalExpandedDay = State(initialValue: expandedDay.wrappedValue)
+
         var cal = Calendar.current
         cal.firstWeekday = 1 // Sunday baseline for display
         self.calendar = cal
     }
 
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(1...7, id: \.self) { day in
-                let card = dayCard(for: day)
-                if let onSelectDay {
-                    Button(action: { onSelectDay(day) }) {
-                        card
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(accessibilityLabel(for: day))
+    init(plan: WeeklyPlan, onSelectDay: ((Int) -> Void)? = nil) {
+        self.plan = plan
+        self.onSelectDay = onSelectDay
+        self.externalExpandedDay = nil
+        _internalExpandedDay = State(initialValue: WeekPlanGrid.defaultExpandedDay(for: plan))
+
+        var cal = Calendar.current
+        cal.firstWeekday = 1
+        self.calendar = cal
+    }
+
+    private var expandedDay: Binding<Int> {
+        Binding(
+            get: { externalExpandedDay?.wrappedValue ?? internalExpandedDay },
+            set: { newValue in
+                if let external = externalExpandedDay {
+                    external.wrappedValue = newValue
                 } else {
-                    card
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(accessibilityLabel(for: day))
+                    internalExpandedDay = newValue
                 }
+            }
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(1...7, id: \.self) { day in
+                    dayButton(for: day)
+                }
+            }
+
+            detailCard(for: expandedDay.wrappedValue)
+        }
+        .animation(.easeInOut(duration: 0.22), value: expandedDay.wrappedValue)
+        .onChange(of: plan) { _, newValue in
+            let current = expandedDay.wrappedValue
+            if !(1...7).contains(current) {
+                expandedDay.wrappedValue = WeekPlanGrid.defaultExpandedDay(for: newValue)
             }
         }
     }
 
-    private func dayCard(for day: Int) -> some View {
+    private func dayButton(for day: Int) -> some View {
         let info = dayInfo(for: day)
-        let workouts = WorkoutCatalog.shared.workouts(forIDs: plan.workoutIDs(for: day))
-        let focusAreas = plan.focusAreas(for: day)
+        let focus = plan.focusAreas(for: day)
+        let hasWorkouts = !plan.workoutIDs(for: day).isEmpty
+        let isSelected = expandedDay.wrappedValue == day
 
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(info.label.uppercased())
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(info.dateString)
-                        .font(.title3.bold())
-                        .foregroundStyle(.primary)
-                }
-                Spacer()
+        return Button {
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                expandedDay.wrappedValue = day
+            }
+        } label: {
+            VStack(spacing: 10) {
+                Text(info.label.uppercased())
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Text(info.dateString)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+
                 if info.isToday {
                     Text("Today")
                         .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(AtlasTheme.gradient.opacity(0.32), in: Capsule())
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(AtlasTheme.gradient.opacity(0.28), in: Capsule())
                         .foregroundStyle(.white)
                 }
-            }
 
-            if !focusAreas.isEmpty {
-                Text(focusAreas.map { $0.displayName }.joined(separator: " • "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Divider()
-                .opacity(0.18)
-
-            if workouts.isEmpty {
-                if focusAreas.isEmpty {
-                    Text("Rest day")
-                        .font(.subheadline.weight(.semibold))
+                if focus.isEmpty {
+                    Text("Rest")
+                        .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                 } else {
-                    Text("No workouts added yet. Tap to choose moves for this focus.")
+                    VStack(spacing: 4) {
+                        ForEach(Array(focus.prefix(2)), id: \.self) { area in
+                            Text(shortLabel(for: area))
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .lineLimit(1)
+                        }
+                        if focus.count > 2 {
+                            Text("+\(focus.count - 2) more")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if hasWorkouts {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.callout)
+                        .foregroundStyle(AtlasTheme.accentGreen)
+                }
+            }
+            .padding(.vertical, 16)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(AtlasTheme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .strokeBorder(
+                        isSelected ? AtlasTheme.gradient : AtlasTheme.border,
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            )
+            .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
+            .scaleEffect(isSelected ? 1.02 : 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel(for: day))
+    }
+
+    @ViewBuilder
+    private func detailCard(for day: Int) -> some View {
+        let info = dayInfo(for: day)
+        let focus = plan.focusAreas(for: day)
+        let workouts = WorkoutCatalog.shared.workouts(forIDs: plan.workoutIDs(for: day))
+
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(info.fullName)
+                        .font(.title3.bold())
+                        .foregroundStyle(.primary)
+                    Text(info.dateString)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+
+                Spacer()
+
+                if let onSelectDay {
+                    Button {
+                        onSelectDay(day)
+                    } label: {
+                        Label("Edit", systemImage: "square.and.pencil")
+                            .font(.footnote.weight(.semibold))
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(AtlasTheme.gradient.opacity(0.20), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Edit plan for \(info.fullName)")
+                }
+            }
+
+            if info.isToday {
+                Text("You're looking at today's schedule.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if focus.isEmpty {
+                Text("No focus areas yet — mark this as a rest day or add workouts above.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             } else {
-                VStack(alignment: .leading, spacing: 8) {
+                Text("Focus")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                HStack(spacing: 10) {
+                    ForEach(focus, id: \.self) { area in
+                        Text(shortLabel(for: area))
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+
+            Divider().opacity(0.15)
+
+            if workouts.isEmpty {
+                if focus.isEmpty {
+                    Text("Tap edit to add guidance or leave it open as a recovery day.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("No workouts assigned yet. Add a routine so this focus has structure.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 14) {
                     ForEach(workouts) { workout in
-                        HStack(alignment: .top, spacing: 10) {
+                        HStack(alignment: .top, spacing: 12) {
                             Image(systemName: icon(for: workout.area))
-                                .font(.system(size: 14, weight: .semibold))
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(AtlasTheme.accentGreen)
-                                .padding(.top, 2)
-                            VStack(alignment: .leading, spacing: 2) {
+                                .frame(width: 28)
+                            VStack(alignment: .leading, spacing: 4) {
                                 Text(workout.name)
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.primary)
                                 Text(workout.summary)
-                                    .font(.caption)
+                                    .font(.footnote)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(2)
                             }
                         }
                     }
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(AtlasTheme.cardFill)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(
-                    info.isToday ? AtlasTheme.gradient : AtlasTheme.border,
-                    lineWidth: info.isToday ? 2 : 1
-                )
-        )
-        .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
+        .padding(20)
+        .glassCard(cornerRadius: 22)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityDetailLabel(for: day, info: info, workouts: workouts, focus: focus))
     }
 
-    private func dayInfo(for day: Int) -> (label: String, dateString: String, isToday: Bool) {
+    private func dayInfo(for day: Int) -> DayInfo {
         let start = startOfWeek()
         let dayOffset = ((day - calendar.firstWeekday) + 7) % 7
         let date = calendar.date(byAdding: .day, value: dayOffset, to: start) ?? start
-        let labelIndex = (day - 1 + calendar.shortWeekdaySymbols.count) % calendar.shortWeekdaySymbols.count
-        let label = calendar.shortWeekdaySymbols[labelIndex]
+        let shortIndex = (day - 1 + calendar.shortWeekdaySymbols.count) % calendar.shortWeekdaySymbols.count
+        let fullIndex = (day - 1 + calendar.weekdaySymbols.count) % calendar.weekdaySymbols.count
+
+        let label = calendar.shortWeekdaySymbols[shortIndex]
+        let fullName = calendar.weekdaySymbols[fullIndex]
+
         let components = calendar.dateComponents([.month, .day], from: date)
         let monthIndex = max(0, min((components.month ?? 1) - 1, calendar.shortMonthSymbols.count - 1))
         let month = calendar.shortMonthSymbols[monthIndex]
         let dayNumber = components.day ?? 1
         let dateString = "\(month) \(dayNumber)"
-        return (label, dateString, calendar.isDateInToday(date))
+
+        return DayInfo(label: label, fullName: fullName, dateString: dateString, isToday: calendar.isDateInToday(date), date: date)
     }
 
     private func startOfWeek() -> Date {
@@ -139,6 +265,16 @@ struct WeekPlanGrid: View {
         let weekday = calendar.component(.weekday, from: today)
         let difference = ((weekday - calendar.firstWeekday) + 7) % 7
         return calendar.date(byAdding: .day, value: -difference, to: today) ?? today
+    }
+
+    private func shortLabel(for area: FitnessArea) -> String {
+        switch area {
+        case .strength: return "Strength"
+        case .mobility: return "Mobility"
+        case .power: return "Power"
+        case .hiit: return "HIIT"
+        case .neat: return "Cardio"
+        }
     }
 
     private func icon(for area: FitnessArea) -> String {
@@ -159,11 +295,46 @@ struct WeekPlanGrid: View {
                 return "\(info.label) \(info.dateString). Rest day."
             } else {
                 let focus = plan.focusAreas(for: day).map { $0.displayName }.joined(separator: ", ")
-                return "\(info.label) \(info.dateString). Focus: \(focus). No workouts chosen yet."
+                return "\(info.label) \(info.dateString). Focus: \(focus)."
             }
         } else {
             let names = workouts.map { $0.name }.joined(separator: ", ")
             return "\(info.label) \(info.dateString). Planned workouts: \(names)."
         }
+    }
+
+    private func accessibilityDetailLabel(for day: Int, info: DayInfo, workouts: [WorkoutDefinition], focus: [FitnessArea]) -> String {
+        var components: [String] = ["\(info.fullName) \(info.dateString)"]
+        if info.isToday { components.append("Today") }
+        if focus.isEmpty {
+            components.append("No focus areas")
+        } else {
+            components.append("Focus: \(focus.map { $0.displayName }.joined(separator: ", "))")
+        }
+        if workouts.isEmpty {
+            components.append("No workouts assigned")
+        } else {
+            components.append("Workouts: \(workouts.map { $0.name }.joined(separator: ", "))")
+        }
+        return components.joined(separator: ". ")
+    }
+
+    static func defaultExpandedDay(for plan: WeeklyPlan) -> Int {
+        let today = Calendar.current.component(.weekday, from: Date())
+        if let dayPlan = plan.dayPlan(for: today), !dayPlan.isEmpty {
+            return today
+        }
+        if let firstActive = plan.days.keys.sorted().first {
+            return firstActive
+        }
+        return today
+    }
+
+    private struct DayInfo {
+        let label: String
+        let fullName: String
+        let dateString: String
+        let isToday: Bool
+        let date: Date
     }
 }
