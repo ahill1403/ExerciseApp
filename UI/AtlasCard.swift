@@ -1,6 +1,6 @@
 //
 //  AtlasCard.swift — Emerald & Pine (Light & Dark ready)
-//  AtlasFit
+//  REPS
 //
 
 import SwiftUI

@@ -388,7 +388,7 @@ private struct PlanChoiceStep: View {
 
             VStack(spacing: 12) {
                 PlanDecisionRow(
-                    title: "Use AtlasFit’s recommended plan",
+                    title: "Use REPS’s recommended plan",
                     message: "Auto-fill my calendar with suggested workouts.",
                     icon: "sparkles",
                     isSelected: decision == .recommended

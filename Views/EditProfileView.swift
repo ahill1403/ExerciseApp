@@ -1,6 +1,6 @@
 //
 //  EditProfileView.swift
-//  AtlasFit
+//  REPS
 //
 
 import SwiftUI

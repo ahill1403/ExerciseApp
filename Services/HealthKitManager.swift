@@ -1,6 +1,6 @@
 //
 //  HealthKitManager.swift
-//  AtlasFit
+//  REPS
 //
 //  Created by Aaron Hill on 9/13/25.
 //

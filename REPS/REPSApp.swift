@@ -1,6 +1,6 @@
 //
-//  AtlasFitApp.swift
-//  AtlasFit
+//  REPSApp.swift
+//  REPS
 //
 //  Created by Aaron Hill on 9/11/25.
 //
@@ -8,7 +8,7 @@
 import SwiftUI
 
 @main
-struct AtlasFitApp: App {
+struct REPSApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some Scene {

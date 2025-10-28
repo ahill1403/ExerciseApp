@@ -1,13 +1,13 @@
 //
-//  AtlasFitUITests.swift
-//  AtlasFitUITests
+//  REPSUITests.swift
+//  REPSUITests
 //
 //  Created by Aaron Hill on 9/9/25.
 //
 
 import XCTest
 
-final class AtlasFitUITests: XCTestCase {
+final class REPSUITests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
