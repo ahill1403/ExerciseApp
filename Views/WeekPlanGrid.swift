@@ -4,11 +4,6 @@ struct WeekPlanGrid: View {
     let plan: WeeklyPlan
     private let onSelectDay: ((Int) -> Void)?
     private let calendar: Calendar
-    private let columns: [GridItem] = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
 
     private let externalExpandedDay: Binding<Int>?
     @State private var internalExpandedDay: Int
@@ -49,16 +44,15 @@ struct WeekPlanGrid: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(1...7, id: \.self) { day in
-                    dayButton(for: day)
-                }
-            }
+        VStack(alignment: .leading, spacing: 22) {
+            daySelector
 
             detailCard(for: expandedDay.wrappedValue)
+                .id(expandedDay.wrappedValue)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .contentTransition(.opacity)
         }
-        .animation(.easeInOut(duration: 0.22), value: expandedDay.wrappedValue)
+        .animation(.spring(response: 0.32, dampingFraction: 0.82), value: expandedDay.wrappedValue)
         .onChange(of: plan) { _, newValue in
             let current = expandedDay.wrappedValue
             if !(1...7).contains(current) {
@@ -67,76 +61,75 @@ struct WeekPlanGrid: View {
         }
     }
 
-    private func dayButton(for day: Int) -> some View {
+    private var daySelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(1...7, id: \.self) { day in
+                    dayCircle(for: day)
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func dayCircle(for day: Int) -> some View {
         let info = dayInfo(for: day)
+        let abbreviation = String(info.label.prefix(3)).uppercased()
         let focus = plan.focusAreas(for: day)
         let hasWorkouts = !plan.workoutIDs(for: day).isEmpty
         let isSelected = expandedDay.wrappedValue == day
 
         return Button {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
                 expandedDay.wrappedValue = day
             }
         } label: {
-            VStack(spacing: 10) {
-                Text(info.label.uppercased())
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-
-                Text(info.dateString)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-
+            VStack(spacing: 6) {
                 if info.isToday {
-                    Text("Today")
+                    Text("TODAY")
                         .font(.caption2.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(AtlasTheme.gradient.opacity(0.28), in: Capsule())
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AtlasTheme.accentGreen)
+                        .transition(.scale.combined(with: .opacity))
                 }
 
-                if focus.isEmpty {
-                    Text("Rest")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                } else {
-                    VStack(spacing: 4) {
-                        ForEach(Array(focus.prefix(2)), id: \.self) { area in
-                            Text(shortLabel(for: area))
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.primary)
-                                .lineLimit(1)
-                        }
-                        if focus.count > 2 {
-                            Text("+\(focus.count - 2) more")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? AtlasTheme.gradient : AtlasTheme.cardFill)
+                        .overlay(
+                            Circle()
+                                .strokeBorder(isSelected ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: isSelected ? 2 : 1)
+                        )
+                        .shadow(color: Color.black.opacity(isSelected ? 0.18 : 0.08), radius: isSelected ? 16 : 10, x: 0, y: isSelected ? 10 : 6)
+
+                    Text(abbreviation)
+                        .font(.headline.bold())
+                        .foregroundStyle(isSelected ? Color.white : AtlasTheme.textPrimary)
+                        .accessibilityHidden(true)
+
+                    if hasWorkouts {
+                        Circle()
+                            .fill(AtlasTheme.accentGreen.opacity(0.85))
+                            .frame(width: 12, height: 12)
+                            .overlay(
+                                Circle().stroke(Color.white.opacity(0.65), lineWidth: 2)
+                            )
+                            .offset(x: 22, y: 22)
                     }
                 }
+                .frame(width: 68, height: 68)
+                .scaleEffect(isSelected ? 1.08 : 1)
+                .animation(.spring(response: 0.32, dampingFraction: 0.82), value: isSelected)
 
-                if hasWorkouts {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.callout)
-                        .foregroundStyle(AtlasTheme.accentGreen)
-                }
+                Text(focusSummary(for: focus))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(isSelected ? AtlasTheme.textPrimary : .secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
             }
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(AtlasTheme.cardFill)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? AtlasTheme.gradient : AtlasTheme.border,
-                        lineWidth: isSelected ? 2 : 1
-                    )
-            )
-            .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
-            .scaleEffect(isSelected ? 1.02 : 1)
+            .frame(width: 80)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel(for: day))
@@ -274,6 +267,15 @@ struct WeekPlanGrid: View {
         case .power: return "Power"
         case .hiit: return "HIIT"
         case .neat: return "Cardio"
+        }
+    }
+
+    private func focusSummary(for focus: [FitnessArea]) -> String {
+        switch focus.count {
+        case 0:  return "Rest"
+        case 1:  return shortLabel(for: focus[0])
+        case 2:  return "\(shortLabel(for: focus[0])) & \(shortLabel(for: focus[1]))"
+        default: return "\(shortLabel(for: focus[0])) +\(focus.count - 1)"
         }
     }
 
