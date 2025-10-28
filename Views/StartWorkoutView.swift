@@ -534,7 +534,7 @@ private struct LoggingPanel: View {
     @Binding var activeSheet: ActiveSheet?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 4) {
             Capsule()
                 .fill(Color.white.opacity(0.3))
                 .frame(width: 40, height: 5)
@@ -547,10 +547,6 @@ private struct LoggingPanel: View {
                 if exercise.sets.isEmpty {
                     Text("No sets yet. Use the controls below to log your first set.")
                         .font(.footnote)
-                        .foregroundColor(.secondary)
-                } else {
-                    Text("Use the button above to review or edit your logged sets.")
-                        .font(.caption)
                         .foregroundColor(.secondary)
                 }
 
@@ -578,31 +574,6 @@ private struct LoggingPanel: View {
 
             if !vm.todaysWorkouts.isEmpty {
                 Divider().opacity(0.08)
-
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Need something else?")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AtlasTheme.textPrimary)
-
-                        Text("Log a move that's not in today's plan.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        activeSheet = .addExercise
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundStyle(AtlasTheme.gradient)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Add custom movement")
-                    .accessibilityHint("Opens a sheet to log your own exercise")
-                }
             }
         }
         .padding(.top, 12)
@@ -636,15 +607,6 @@ private struct LoggingPanel: View {
     private func header(workout: WorkoutDefinition) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Log this workout")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.secondary)
-
-                    Text(workout.name)
-                        .font(.title3.bold())
-                        .foregroundColor(AtlasTheme.textPrimary)
-                }
 
                 Spacer(minLength: 0)
 
@@ -984,9 +946,6 @@ private struct AddSetInline: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Quick log")
-                .font(.footnote.weight(.semibold))
-                .foregroundColor(.secondary)
 
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .bottom, spacing: 12) {
@@ -994,12 +953,6 @@ private struct AddSetInline: View {
 
                     CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
 
-                    Picker("Units", selection: $units) {
-                        ForEach(Units.allCases, id: \.self) { unit in
-                            Text(unit.rawValue).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.segmented)
                     .frame(width: 140)
 
                     logButton
@@ -1012,12 +965,6 @@ private struct AddSetInline: View {
                     }
 
                     HStack(spacing: 12) {
-                        Picker("Units", selection: $units) {
-                            ForEach(Units.allCases, id: \.self) { unit in
-                                Text(unit.rawValue).tag(unit)
-                            }
-                        }
-                        .pickerStyle(.segmented)
 
                         logButton
                     }
