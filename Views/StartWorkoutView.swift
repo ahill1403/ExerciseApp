@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+private enum ActiveSheet: Identifiable {
+    case addExercise
+    case editSet
+
+    var id: String {
+        switch self {
+        case .addExercise: return "addExercise"
+        case .editSet:     return "editSet"
+        }
+    }
+}
+
 struct StartWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = StartWorkoutViewModel()
@@ -18,7 +30,9 @@ struct StartWorkoutView: View {
     @State private var editReps: Int = 8
     @State private var editWeight: Double = 0
     @State private var editUnits: Units = .lbs
-    @State private var showEditSheet = false
+
+    // Unified sheet controller
+    @State private var activeSheet: ActiveSheet?
 
     @State private var planSnapshot: WeeklyPlan = PlannerStore.shared.load()
 
@@ -43,30 +57,48 @@ struct StartWorkoutView: View {
             vm.refreshPlanSuggestion()
             planSnapshot = PlannerStore.shared.load()
         }
-        .onReceive(vm.$planSuggestion.dropFirst()) { _ in
+        // iOS 17: zero-parameter onChange; observe Equatable projection (Int?)
+        .onChange(of: vm.planSuggestion?.day) {
             planSnapshot = PlannerStore.shared.load()
         }
+        // Keep toolbar items structurally present; gate content inside
         .toolbar {
-            if vm.isLogging {
-                ToolbarItem(placement: .topBarLeading) {
+            ToolbarItem(placement: .topBarLeading) {
+                if vm.isLogging {
                     Button("Cancel") { vm.reset(); dismiss() }
+                } else {
+                    EmptyView()
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button("Autofill last") { vm.autofillFromLast() }
-                        Button("Finish") { showFinishAlert = true }
-                    }
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if vm.isLogging {
+                    Button("Autofill last") { vm.autofillFromLast() }
+                    Button("Finish") { showFinishAlert = true }
+                } else {
+                    EmptyView()
                 }
             }
         }
         .alert("Finish Workout?", isPresented: $showFinishAlert) {
-            Button("Save", role: .none) { vm.finish(); dismiss() }
+            Button("Save") { vm.finish(); dismiss() }
             Button("Keep Logging", role: .cancel) { }
-        } message: { Text("Your session will be saved to Progress.") }
-        .sheet(isPresented: $vm.showAddExercise) {
-            AddExerciseSheet(name: $vm.newExerciseName) { vm.addExercise() }
+        } message: {
+            Text("Your session will be saved to Progress.")
         }
-        .sheet(isPresented: $showEditSheet) {
+        .sheet(item: $activeSheet) { sheet in
+            sheetContent(for: sheet)
+        }
+    }
+
+    // MARK: - Sheet content helper
+    @ViewBuilder
+    private func sheetContent(for sheet: ActiveSheet) -> some View {
+        switch sheet {
+        case .addExercise:
+            AddExerciseSheet(name: $vm.newExerciseName) {
+                vm.addExercise()
+            }
+        case .editSet:
             EditSetSheet(reps: $editReps, weight: $editWeight, units: $editUnits) {
                 if let exID = editExerciseID,
                    let i = editSetIndex,
@@ -95,7 +127,7 @@ struct StartWorkoutView: View {
     private var planRecommendationSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("From your weekly planner", systemImage: "calendar")
-                .font(.title3.bold())
+                .font(.title2.bold())
                 .gradientForeground()
 
             WeekSchedulePeek(plan: planSnapshot)
@@ -103,17 +135,23 @@ struct StartWorkoutView: View {
             if let suggestion = vm.planSuggestion,
                let firstTemplate = suggestion.templates.first,
                let templateInfo = vm.info(for: firstTemplate) {
+
                 let dayName = weekdayName(for: suggestion.day)
                 let focusSummary = suggestion.areas.map { $0.displayName }.joined(separator: " • ")
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(suggestion.isToday ? "Today's recommendation" : (suggestion.offset == 1 ? "Tomorrow's recommendation" : "\(dayName)'s recommendation"))
+                    // FIX 1: compute header as a single expression so ViewBuilder doesn't see naked statements
+                    let header = suggestion.isToday
+                    ? "Today's recommendation"
+                    : (suggestion.offset == 1 ? "Tomorrow's recommendation" : "\(dayName)'s recommendation")
+
+                    Text(header)
                         .font(.headline)
-                        .foregroundStyle(.primary)
+                        .foregroundColor(.primary)
 
                     Text(focusSummary)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
 
                 HStack(spacing: 10) {
@@ -129,11 +167,11 @@ struct StartWorkoutView: View {
 
                 Text("\(templateInfo.duration) • \(templateInfo.equipment)")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
 
                 Text(templateInfo.summary)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
 
                 Button {
                     vm.start(template: firstTemplate)
@@ -147,7 +185,7 @@ struct StartWorkoutView: View {
 
                     Text("Other planner-aligned options")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
 
                     VStack(spacing: 6) {
                         ForEach(Array(suggestion.templates.dropFirst()), id: \.self) { name in
@@ -170,27 +208,29 @@ struct StartWorkoutView: View {
             } else {
                 Text("Set at least one training day in Weekly Planner to unlock a daily recommendation here.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             Text("Manage your schedule anytime from the Plan tab.")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
         }
         .padding(20)
         .glassCard(cornerRadius: 22)
     }
 
     private var templatesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .center, spacing: 12) {
             Text("Choose a template")
-                .font(.title3.bold())
+                .font(.title2.bold())
                 .gradientForeground()
+                .padding(.top, 15)
 
             Text("Curated sessions you can start in one tap.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
+                .padding(.bottom, 2)
 
             LazyVGrid(columns: templateColumns, spacing: 14) {
                 ForEach(vm.templates) { template in
@@ -210,11 +250,11 @@ struct StartWorkoutView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Prefer to freestyle?")
                 .font(.headline)
-                .foregroundStyle(.primary)
+                .foregroundColor(.primary)
 
             Text("Start an empty log and build the workout as you go.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
 
             Button("Start Empty Session") {
                 vm.start(template: "Custom")
@@ -245,7 +285,17 @@ struct StartWorkoutView: View {
             }
         }
         .safeAreaInset(edge: .bottom) {
-            loggingPanel
+            LoggingPanel(
+                vm: vm,
+                currentWorkoutDefinition: currentWorkoutDefinition,
+                currentExerciseEntry: currentExerciseEntry,
+                editExerciseID: $editExerciseID,
+                editSetIndex: $editSetIndex,
+                editReps: $editReps,
+                editWeight: $editWeight,
+                editUnits: $editUnits,
+                activeSheet: $activeSheet
+            )
         }
     }
 
@@ -264,7 +314,7 @@ struct StartWorkoutView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(vm.selectedTemplate ?? "Workout")
                     .font(.largeTitle.bold())
-                    .foregroundStyle(AtlasTheme.textPrimary)
+                    .foregroundColor(AtlasTheme.textPrimary)
 
                 Spacer()
 
@@ -283,16 +333,16 @@ struct StartWorkoutView: View {
                !suggestion.areas.isEmpty {
                 Text(suggestion.areas.map { $0.displayName }.joined(separator: " • "))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             } else if let focus = currentWorkoutDefinition?.area.displayName {
                 Text(focus)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             }
 
             Text("Keep momentum by logging each set below — it all feeds your progress trends.")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
         }
         .padding(24)
         .glassCard(cornerRadius: 26)
@@ -304,12 +354,12 @@ struct StartWorkoutView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Today's plan")
                         .font(.title3.bold())
-                        .foregroundStyle(AtlasTheme.textPrimary)
+                        .foregroundColor(AtlasTheme.textPrimary)
 
                     if let workout = currentWorkoutDefinition {
                         Text("Up next: \(workout.name)")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                     }
                 }
 
@@ -320,7 +370,7 @@ struct StartWorkoutView: View {
                     let total = vm.todaysWorkouts.count
                     Text("\(completed)/\(total) complete")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(AtlasTheme.gradient.opacity(0.14), in: Capsule())
@@ -331,14 +381,14 @@ struct StartWorkoutView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("No workouts planned today")
                         .font(.headline)
-                        .foregroundStyle(AtlasTheme.textPrimary)
+                        .foregroundColor(AtlasTheme.textPrimary)
 
                     Text("Add a custom move to start logging, or schedule sessions from the Plan tab.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
 
                     Button {
-                        vm.showAddExercise = true
+                        activeSheet = .addExercise
                     } label: {
                         Label("Add custom movement", systemImage: "plus")
                             .font(.subheadline.weight(.semibold))
@@ -350,7 +400,7 @@ struct StartWorkoutView: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 14) {
-                    ForEach(Array(vm.todaysWorkouts.enumerated()), id: \.element.id) { index, workout in
+                    ForEach(Array(vm.todaysWorkouts.enumerated()), id: \.offset) { index, workout in
                         WorkoutProgressRow(
                             workout: workout,
                             isCurrent: index == vm.currentWorkoutIndex,
@@ -371,101 +421,68 @@ struct StartWorkoutView: View {
 
                 Text("Tap a card to focus logging on that workout. Check it off once you've completed the sets.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(24)
         .glassCard(cornerRadius: 26)
     }
+}
 
-    private var loggingPanel: some View {
+// MARK: - Extracted Logging Panel
+private struct LoggingPanel: View {
+    @ObservedObject var vm: StartWorkoutViewModel
+    let currentWorkoutDefinition: WorkoutDefinition?
+    let currentExerciseEntry: ExerciseEntry?
+
+    @Binding var editExerciseID: UUID?
+    @Binding var editSetIndex: Int?
+    @Binding var editReps: Int
+    @Binding var editWeight: Double
+    @Binding var editUnits: Units
+    @Binding var activeSheet: ActiveSheet?
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             if let workout = currentWorkoutDefinition,
                let exercise = currentExerciseEntry {
-                HStack(alignment: .center) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Log this workout")
-                            .font(.headline)
-                            .foregroundStyle(AtlasTheme.textPrimary)
-                        Text(workout.name)
-                            .font(.title3.bold())
-                            .foregroundStyle(AtlasTheme.textPrimary)
-                    }
-                    Spacer()
-                    if vm.completedWorkoutIDs.contains(workout.id) {
-                        Label("Completed", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AtlasTheme.accentGreen)
-                    }
-                }
+                header(workout: workout)
 
                 Divider().opacity(0.15)
 
                 if exercise.sets.isEmpty {
                     Text("No sets yet. Use the controls below to log your first set.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 } else {
-                    VStack(spacing: 10) {
-                        ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Set \(index + 1)")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(AtlasTheme.textPrimary)
-                                    Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Image(systemName: "slider.horizontal.3")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(AtlasTheme.border, lineWidth: 1)
-                            )
-                            .contextMenu {
-                                Button("Edit") {
-                                    editExerciseID = exercise.id
-                                    editSetIndex = index
-                                    editReps = set.reps
-                                    editWeight = set.weight
-                                    editUnits = set.units
-                                    showEditSheet = true
-                                }
-                            }
-                        }
-                    }
+                    setsList(exercise: exercise)
                 }
 
                 AddSetInline { reps, weight, units in
                     vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
                 }
                 .padding(.top, 4)
+
             } else if vm.todaysWorkouts.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Ready when you are")
                         .font(.headline)
-                        .foregroundStyle(AtlasTheme.textPrimary)
+                        .foregroundColor(AtlasTheme.textPrimary)
                     Text("Add a movement above to start tracking reps, sets and load.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
             } else {
                 Text("Select a workout above to begin logging reps, sets and weight.")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
             }
 
             if !vm.todaysWorkouts.isEmpty {
                 Divider().opacity(0.08)
 
                 Button {
-                    vm.showAddExercise = true
+                    activeSheet = .addExercise
                 } label: {
                     Label("Add custom movement", systemImage: "plus")
                         .font(.subheadline.weight(.semibold))
@@ -490,7 +507,66 @@ struct StartWorkoutView: View {
         .padding(.bottom, 24)
     }
 
+    @ViewBuilder
+    private func header(workout: WorkoutDefinition) -> some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Log this workout")
+                    .font(.headline)
+                    .foregroundColor(AtlasTheme.textPrimary)
+                Text(workout.name)
+                    .font(.title3.bold())
+                    .foregroundColor(AtlasTheme.textPrimary)
+            }
+            Spacer()
+            if vm.completedWorkoutIDs.contains(workout.id) {
+                Label("Completed", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AtlasTheme.accentGreen)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func setsList(exercise: ExerciseEntry) -> some View {
+        VStack(spacing: 10) {
+            ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Set \(index + 1)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AtlasTheme.textPrimary)
+                        Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "slider.horizontal.3")
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(AtlasTheme.border, lineWidth: 1)
+                )
+                .contextMenu {
+                    Button("Edit") {
+                        editExerciseID = exercise.id
+                        editSetIndex = index
+                        editReps = set.reps
+                        editWeight = set.weight
+                        editUnits = set.units
+                        activeSheet = .editSet
+                    }
+                }
+            }
+        }
+    }
 }
+
+// MARK: - Small components
 
 private struct TemplateCard: View {
     let template: StartWorkoutViewModel.TemplateInfo
@@ -499,7 +575,7 @@ private struct TemplateCard: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(template.name)
                 .font(.headline)
-                .foregroundStyle(.primary)
+                .foregroundColor(.primary)
 
             Text(template.focus)
                 .font(.caption.weight(.semibold))
@@ -509,11 +585,11 @@ private struct TemplateCard: View {
 
             Text("\(template.duration) • \(template.equipment)")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
 
             Text(template.summary)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
                 .lineLimit(3)
         }
         .padding(16)
@@ -537,31 +613,41 @@ private struct WorkoutProgressRow: View {
     var onToggleComplete: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Button(action: onToggleComplete) {
-                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(isCompleted ? AtlasTheme.accentGreen : .secondary)
-                    .frame(width: 34, height: 34)
-            }
-            .buttonStyle(.plain)
-            .opacity(isCurrent || isCompleted ? 1 : 0.35)
-            .allowsHitTesting(isCurrent || isCompleted)
+        let showDone = isCompleted
+        let showInProgress = (!isCompleted && isCurrent)
+        let rowOpacity: Double = isCompleted ? 0.6 : 1.0
 
-            VStack(alignment: .leading, spacing: 12) {
+        // Normalize styles up front (same concrete type via AnyShapeStyle)
+        let fillStyle: AnyShapeStyle = isCurrent
+            ? AnyShapeStyle(AtlasTheme.gradient.opacity(0.18))
+            : AnyShapeStyle(AtlasTheme.cardFill)
+
+        let strokeStyle: AnyShapeStyle = isCurrent
+            ? AnyShapeStyle(AtlasTheme.gradient)
+            : AnyShapeStyle(AtlasTheme.border)
+
+        let strokeWidth: CGFloat = isCurrent ? 1.2 : 1.0
+        let statusText: String? = showDone ? "Done" : (showInProgress ? "In progress" : nil)
+
+        HStack(alignment: .center, spacing: 12) {
+            // Checkbox
+            Image(systemName: showDone ? "checkmark.circle.fill" : "circle")
+                .font(.title2.weight(.semibold))
+                .foregroundColor(showDone ? AtlasTheme.accentGreen : .secondary)
+                .frame(width: 34, height: 34)
+                .onTapGesture(perform: onToggleComplete)
+
+            // Text content
+            VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(workout.name)
                         .font(.headline)
-                        .foregroundStyle(AtlasTheme.textPrimary)
+                        .foregroundColor(AtlasTheme.textPrimary)
                     Spacer()
-                    if isCompleted {
-                        Text("Done")
+                    if let status = statusText {
+                        Text(status)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(AtlasTheme.accentGreen)
-                    } else if isCurrent {
-                        Text("In progress")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AtlasTheme.accentGreen)
+                            .foregroundColor(AtlasTheme.accentGreen)
                     }
                 }
 
@@ -571,33 +657,35 @@ private struct WorkoutProgressRow: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 4)
                         .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+
                     Text(workout.equipment)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundColor(.secondary)
                 }
 
                 Text(workout.summary)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(18)
+            .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(isCurrent ? AtlasTheme.gradient.opacity(0.22) : AtlasTheme.cardFill)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(fillStyle)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(isCurrent ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: isCurrent ? 1.6 : 1)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(strokeStyle, lineWidth: strokeWidth)
             )
-            .onTapGesture(perform: onSelect)
         }
-        .padding(.vertical, 2)
-        .opacity(isCompleted ? 0.55 : (isCurrent ? 1 : 0.82))
-        .animation(.easeInOut(duration: 0.24), value: isCurrent)
-        .animation(.easeInOut(duration: 0.24), value: isCompleted)
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+        .opacity(rowOpacity)
+        .accessibilityAddTraits(.isButton)
     }
+
 }
 
 private struct WeekSchedulePeek: View {
@@ -622,7 +710,7 @@ private struct WeekSchedulePeek: View {
 
                 Text(label)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(hasFocus ? Color.white : .secondary)
+                    .foregroundColor(hasFocus ? .white : .secondary)
                     .frame(width: 32, height: 32)
                     .background(
                         Circle()
@@ -630,7 +718,11 @@ private struct WeekSchedulePeek: View {
                     )
                     .overlay(
                         Circle()
-                            .strokeBorder(isToday ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: isToday ? 2 : 1)
+                            // FIX 3: make both branches the same type via AnyShapeStyle
+                            .strokeBorder(
+                                (isToday ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(AtlasTheme.border)),
+                                lineWidth: isToday ? 2 : 1
+                            )
                     )
                     .accessibilityLabel(accessibilityLabel(for: day, hasFocus: hasFocus))
             }
@@ -698,7 +790,9 @@ private struct AddSetInline: View {
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 90)
             Picker("", selection: $units) {
-                ForEach(Units.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(Units.allCases, id: \.self) { unit in
+                    Text(unit.rawValue).tag(unit)
+                }
             }
             .frame(width: 80)
             Button {
@@ -728,7 +822,9 @@ private struct EditSetSheet: View {
                         .multilineTextAlignment(.trailing)
                         .frame(width: 100)
                     Picker("", selection: $units) {
-                        ForEach(Units.allCases) { Text($0.rawValue).tag($0) }
+                        ForEach(Units.allCases, id: \.self) { unit in
+                            Text(unit.rawValue).tag(unit)
+                        }
                     }
                     .frame(width: 90)
                 }
@@ -743,5 +839,6 @@ private struct EditSetSheet: View {
     }
 }
 
+// NOTE: Move previews to StartWorkoutView_Previews.swift to keep this file lean.
 #Preview("Light") { AtlasTabRoot().preferredColorScheme(.light) }
 #Preview("Dark")  { AtlasTabRoot().preferredColorScheme(.dark) }
