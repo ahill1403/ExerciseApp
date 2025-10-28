@@ -8,13 +8,24 @@ struct WorkoutDefinition: Identifiable, Hashable {
     let equipment: String
     let summary: String
 
-    init(name: String, area: FitnessArea, minimumExperience: TrainingExperience = .beginner, equipment: String, summary: String) {
+    init(
+        id: String? = nil,
+        name: String,
+        area: FitnessArea,
+        minimumExperience: TrainingExperience = .beginner,
+        equipment: String,
+        summary: String
+    ) {
         self.name = name
         self.area = area
         self.minimumExperience = minimumExperience
         self.equipment = equipment
         self.summary = summary
-        self.id = WorkoutDefinition.makeID(name: name, area: area)
+        if let id {
+            self.id = id
+        } else {
+            self.id = WorkoutDefinition.makeID(name: name, area: area)
+        }
     }
 
     private static func makeID(name: String, area: FitnessArea) -> String {

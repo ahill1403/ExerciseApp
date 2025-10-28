@@ -10,6 +10,9 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published var exercises: [ExerciseEntry] = []
     @Published var startTime: Date?
     @Published private(set) var planSuggestion: PlanSuggestion?
+    @Published private(set) var todaysWorkouts: [WorkoutDefinition] = []
+    @Published var currentWorkoutIndex: Int = 0
+    @Published var completedWorkoutIDs: Set<String> = []
 
     // Sheets
     @Published var showAddExercise = false
@@ -18,6 +21,7 @@ final class StartWorkoutViewModel: ObservableObject {
     struct TemplateInfo: Identifiable, Hashable {
         let id = UUID()
         let name: String
+        let area: FitnessArea
         let focus: String
         let duration: String
         let equipment: String
@@ -27,6 +31,7 @@ final class StartWorkoutViewModel: ObservableObject {
     let templates: [TemplateInfo] = [
         TemplateInfo(
             name: "Foundations Strength",
+            area: .strength,
             focus: "Strength",
             duration: "45 min",
             equipment: "Dumbbells + bench",
@@ -34,6 +39,7 @@ final class StartWorkoutViewModel: ObservableObject {
         ),
         TemplateInfo(
             name: "Upper Body Push",
+            area: .strength,
             focus: "Chest & Shoulders",
             duration: "35 min",
             equipment: "Bench + dumbbells",
@@ -41,6 +47,7 @@ final class StartWorkoutViewModel: ObservableObject {
         ),
         TemplateInfo(
             name: "Lower Body Strength",
+            area: .strength,
             focus: "Legs & Glutes",
             duration: "40 min",
             equipment: "Barbell or dumbbells",
@@ -48,6 +55,7 @@ final class StartWorkoutViewModel: ObservableObject {
         ),
         TemplateInfo(
             name: "Mobility Reset",
+            area: .mobility,
             focus: "Mobility",
             duration: "20 min",
             equipment: "Mat + foam roller",
@@ -55,6 +63,7 @@ final class StartWorkoutViewModel: ObservableObject {
         ),
         TemplateInfo(
             name: "Interval Ignite",
+            area: .hiit,
             focus: "HIIT",
             duration: "25 min",
             equipment: "Treadmill or open space",
@@ -62,6 +71,7 @@ final class StartWorkoutViewModel: ObservableObject {
         ),
         TemplateInfo(
             name: "Power Circuit",
+            area: .power,
             focus: "Explosive Power",
             duration: "30 min",
             equipment: "Kettlebell + medicine ball",
@@ -69,6 +79,7 @@ final class StartWorkoutViewModel: ObservableObject {
         ),
         TemplateInfo(
             name: "Recovery Walk",
+            area: .neat,
             focus: "NEAT / LISS",
             duration: "30 min",
             equipment: "Comfortable shoes",
@@ -108,16 +119,39 @@ final class StartWorkoutViewModel: ObservableObject {
         isLogging = true
         exercises = []
         startTime = Date()
+        completedWorkoutIDs = []
+        currentWorkoutIndex = 0
+
+        let planWorkouts = todaysPlanWorkouts()
+        if !planWorkouts.isEmpty {
+            todaysWorkouts = planWorkouts
+        } else {
+            todaysWorkouts = fallbackWorkouts(for: template)
+        }
+        bindExercisesToWorkouts()
     }
-    
+
     func addExercise() {
         let name = newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
-        exercises.append(ExerciseEntry(name: name))
+        let entry = ExerciseEntry(name: name)
+        exercises.append(entry)
+
+        let customDefinition = WorkoutDefinition(
+            id: "custom-\(UUID().uuidString)",
+            name: name,
+            area: .strength,
+            equipment: "Custom entry",
+            summary: "Track your own movement."
+        )
+        todaysWorkouts.append(customDefinition)
+        workoutExerciseLookup[customDefinition.id] = entry.id
+        currentWorkoutIndex = max(todaysWorkouts.count - 1, 0)
+        completedWorkoutIDs.remove(customDefinition.id)
         newExerciseName = ""
         showAddExercise = false
     }
-    
+
     func addSet(to exerciseID: UUID, reps: Int, weight: Double, units: Units) {
         guard let idx = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         exercises[idx].sets.append(SetEntry(reps: reps, weight: weight, units: units))
@@ -153,13 +187,10 @@ final class StartWorkoutViewModel: ObservableObject {
         guard let template = selectedTemplate else { return }
         let last = WorkoutStore.shared.load().last { $0.template == template }
         guard let l = last else { return }
-        exercises = l.exercises.map { ex in
-            var copy = ExerciseEntry(name: ex.name)
-            copy.sets = ex.sets.map { SetEntry(reps: $0.reps, weight: $0.weight, units: $0.units) }
-            return copy
-        }
+        exercises = l.exercises
+        bindExercisesToWorkouts()
     }
-    
+
     func finish() {
         guard let template = selectedTemplate else { return }
         let duration = startTime.map { Date().timeIntervalSince($0) }
@@ -196,7 +227,129 @@ final class StartWorkoutViewModel: ObservableObject {
         isLogging = false
         exercises = []
         startTime = nil
+        todaysWorkouts = []
+        completedWorkoutIDs = []
+        currentWorkoutIndex = 0
+        workoutExerciseLookup = [:]
         refreshPlanSuggestion()
+    }
+
+    func selectWorkout(with id: String) {
+        guard let index = todaysWorkouts.firstIndex(where: { $0.id == id }) else { return }
+        currentWorkoutIndex = index
+    }
+
+    func toggleCompletion(for id: String) {
+        guard let index = todaysWorkouts.firstIndex(where: { $0.id == id }) else { return }
+        if completedWorkoutIDs.contains(id) {
+            completedWorkoutIDs.remove(id)
+            currentWorkoutIndex = index
+        } else {
+            completedWorkoutIDs.insert(id)
+            advanceToNextWorkout(after: index)
+        }
+    }
+
+    func exercise(for workoutID: String) -> ExerciseEntry? {
+        guard let index = exerciseIndex(for: workoutID) else { return nil }
+        return exercises[index]
+    }
+
+    func exerciseID(for workoutID: String) -> UUID? {
+        workoutExerciseLookup[workoutID]
+    }
+
+    func sets(for workoutID: String) -> [SetEntry] {
+        guard let index = exerciseIndex(for: workoutID) else { return [] }
+        return exercises[index].sets
+    }
+
+    func isCompleted(_ workoutID: String) -> Bool {
+        completedWorkoutIDs.contains(workoutID)
+    }
+
+    func isPlannedExercise(_ id: UUID) -> Bool {
+        workoutExerciseLookup.values.contains(id)
+    }
+
+    // MARK: - Private
+
+    private var workoutExerciseLookup: [String: UUID] = [:]
+
+    private func todaysPlanWorkouts(date: Date = Date()) -> [WorkoutDefinition] {
+        let plan = PlannerStore.shared.load()
+        let today = calendar.component(.weekday, from: date)
+        let ids = plan.workoutIDs(for: today)
+        return WorkoutCatalog.shared.workouts(forIDs: ids)
+    }
+
+    private func fallbackWorkouts(for template: String) -> [WorkoutDefinition] {
+        guard let info = info(for: template) else { return [] }
+        let experience = experience(for: info.area)
+        let primary = WorkoutCatalog.shared.sampleWorkouts(for: info.area, experience: experience, count: 4)
+        if !primary.isEmpty {
+            return primary
+        }
+        return WorkoutCatalog.shared.allWorkouts(for: info.area, experience: experience)
+    }
+
+    private func experience(for area: FitnessArea) -> TrainingExperience {
+        if let profile = loadProfile() {
+            return profile.experienceByArea[area] ?? profile.experience
+        }
+        return .beginner
+    }
+
+    private func loadProfile() -> UserProfile? {
+        guard let data = UserDefaults.standard.data(forKey: "userProfile") else { return nil }
+        return try? JSONDecoder().decode(UserProfile.self, from: data)
+    }
+
+    private func bindExercisesToWorkouts() {
+        var remaining = exercises
+        var updated: [ExerciseEntry] = []
+        var lookup: [String: UUID] = [:]
+
+        for workout in todaysWorkouts {
+            if let index = remaining.firstIndex(where: { $0.name == workout.name }) {
+                let entry = remaining.remove(at: index)
+                updated.append(entry)
+                lookup[workout.id] = entry.id
+            } else if let existingID = workoutExerciseLookup[workout.id],
+                      let existingIndex = exercises.firstIndex(where: { $0.id == existingID }) {
+                let entry = exercises[existingIndex]
+                updated.append(entry)
+                lookup[workout.id] = entry.id
+            } else {
+                let entry = ExerciseEntry(name: workout.name)
+                updated.append(entry)
+                lookup[workout.id] = entry.id
+            }
+        }
+
+        updated.append(contentsOf: remaining)
+        exercises = updated
+        workoutExerciseLookup = lookup
+        if currentWorkoutIndex >= todaysWorkouts.count {
+            currentWorkoutIndex = max(todaysWorkouts.count - 1, 0)
+        }
+    }
+
+    private func advanceToNextWorkout(after index: Int) {
+        let remaining = todaysWorkouts.enumerated().first { idx, workout in
+            idx > index && !completedWorkoutIDs.contains(workout.id)
+        }
+
+        if let next = remaining?.offset {
+            currentWorkoutIndex = next
+        } else if let firstIncomplete = todaysWorkouts.enumerated().first(where: { !completedWorkoutIDs.contains($0.element.id) })?.offset {
+            currentWorkoutIndex = firstIncomplete
+        }
+    }
+
+    private func exerciseIndex(for workoutID: String) -> Int? {
+        guard let id = workoutExerciseLookup[workoutID] else { return nil }
+        return exercises.firstIndex(where: { $0.id == id })
     }
 
     private func nextScheduledDay(in plan: WeeklyPlan, from date: Date) -> (day: Int, offset: Int)? {
