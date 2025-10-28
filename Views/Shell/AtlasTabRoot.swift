@@ -37,6 +37,7 @@ private let tabSpecs: [TabSpec] = [
 struct AtlasTabRoot: View {
     @State private var selected: AtlasTab = .home
     @State private var hideTabBar = false
+    @State private var isWorkoutLogging = false
 
     var body: some View {
         ZStack {
@@ -47,7 +48,14 @@ struct AtlasTabRoot: View {
                 case .planner:
                     NavigationStack { WeeklyPlannerView() }
                 case .workout:
-                    NavigationStack { StartWorkoutView() }
+                    NavigationStack {
+                        StartWorkoutView { isLogging in
+                            isWorkoutLogging = isLogging
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                                hideTabBar = isLogging
+                            }
+                        }
+                    }
                 case .insights:
                     NavigationStack { ProgressDashboardView() }
                 case .settings:
@@ -60,8 +68,42 @@ struct AtlasTabRoot: View {
                 AtlasTabBar(selected: $selected)
             }
         }
-        .onChange(of: selected) {
-            hideTabBar = (selected == .workout)
+        .highPriorityGesture(tabSwipeGesture)
+        .onAppear {
+            hideTabBar = (selected == .workout) && isWorkoutLogging
+        }
+        .onChange(of: selected) { newValue in
+            if newValue == .workout {
+                hideTabBar = isWorkoutLogging
+            } else {
+                hideTabBar = false
+            }
+        }
+    }
+}
+
+private extension AtlasTabRoot {
+    var tabSwipeGesture: some Gesture {
+        DragGesture(minimumDistance: 20, coordinateSpace: .local)
+            .onEnded { value in
+                guard abs(value.translation.height) < 60 else { return }
+
+                if value.translation.width < -70 {
+                    moveToAdjacentTab(offset: 1)
+                } else if value.translation.width > 70 {
+                    moveToAdjacentTab(offset: -1)
+                }
+            }
+    }
+
+    func moveToAdjacentTab(offset: Int) {
+        guard let currentIndex = AtlasTab.allCases.firstIndex(of: selected) else { return }
+        let newIndex = currentIndex + offset
+
+        guard (0..<AtlasTab.allCases.count).contains(newIndex) else { return }
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            selected = AtlasTab.allCases[newIndex]
         }
     }
 }
