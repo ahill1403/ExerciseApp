@@ -10,6 +10,7 @@
 		9C35F6F22E70B349006EC7E2 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C35F6F12E70B349006EC7E2 /* ContentView.swift */; };
 		9C35F71F2E70B459006EC7E2 /* WeeklyPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C35F71E2E70B452006EC7E2 /* WeeklyPlannerView.swift */; };
 		9C3BE2CF2E75F15300A00C25 /* WeeklyPlan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C3BE2CE2E75F14B00A00C25 /* WeeklyPlan.swift */; };
+		9C3C9B442EB17DB800BFA20D /* WorkoutSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C3C9B432EB17DB000BFA20D /* WorkoutSessionView.swift */; };
 		9C7A69982E8F062200BA5C4C /* AtlasTabRoot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C7A69972E8F061D00BA5C4C /* AtlasTabRoot.swift */; };
 		9C85FF312E7340480085CEC1 /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF302E7340420085CEC1 /* WelcomeView.swift */; };
 		9C85FF332E7340520085CEC1 /* OnboardingFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF322E73404B0085CEC1 /* OnboardingFlowView.swift */; };
@@ -52,6 +53,7 @@
 		9C35F7062E70B34A006EC7E2 /* REPSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = REPSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C35F71E2E70B452006EC7E2 /* WeeklyPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlannerView.swift; sourceTree = "<group>"; };
 		9C3BE2CE2E75F14B00A00C25 /* WeeklyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlan.swift; sourceTree = "<group>"; };
+		9C3C9B432EB17DB000BFA20D /* WorkoutSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutSessionView.swift; sourceTree = "<group>"; };
 		9C7A69972E8F061D00BA5C4C /* AtlasTabRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasTabRoot.swift; sourceTree = "<group>"; };
 		9C85FF2E2E7340280085CEC1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		9C85FF2F2E7340360085CEC1 /* OnboardingViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingViewModel.swift; sourceTree = "<group>"; };
@@ -187,6 +189,7 @@
 				17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */,
 				9C35F6F12E70B349006EC7E2 /* ContentView.swift */,
 				9C85FF3A2E7340C80085CEC1 /* EditProfileView.swift */,
+				9C3C9B432EB17DB000BFA20D /* WorkoutSessionView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -352,6 +355,7 @@
 				9C85FF312E7340480085CEC1 /* WelcomeView.swift in Sources */,
 				9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */,
 				9C85FF332E7340520085CEC1 /* OnboardingFlowView.swift in Sources */,
+				9C3C9B442EB17DB800BFA20D /* WorkoutSessionView.swift in Sources */,
 				9C85FF442E73458F0085CEC1 /* Models.swift in Sources */,
 				9C85FF3B2E7340C80085CEC1 /* EditProfileView.swift in Sources */,
 				9C85FF512E734FE50085CEC1 /* StartWorkoutViewModel.swift in Sources */,

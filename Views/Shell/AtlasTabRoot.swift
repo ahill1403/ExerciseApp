@@ -48,14 +48,7 @@ struct AtlasTabRoot: View {
                 case .planner:
                     NavigationStack { WeeklyPlannerView() }
                 case .workout:
-                    NavigationStack {
-                        StartWorkoutView { isLogging in
-                            isWorkoutLogging = isLogging
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                                hideTabBar = isLogging
-                            }
-                        }
-                    }
+                    NavigationStack { StartWorkoutView() }
                 case .insights:
                     NavigationStack { ProgressDashboardView() }
                 case .settings:
@@ -73,12 +66,21 @@ struct AtlasTabRoot: View {
             hideTabBar = (selected == .workout) && isWorkoutLogging
         }
         .onChange(of: selected) { newValue in
-            if newValue == .workout {
-                hideTabBar = isWorkoutLogging
-            } else {
+            if newValue != .workout {
+                isWorkoutLogging = false
                 hideTabBar = false
+            } else {
+                hideTabBar = isWorkoutLogging
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .atlasLoggingStateChanged)) { note in
+            guard let isLogging = note.object as? Bool else { return }
+            isWorkoutLogging = isLogging
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                hideTabBar = (selected == .workout) && isLogging
+            }
+        }
+
     }
 }
 
