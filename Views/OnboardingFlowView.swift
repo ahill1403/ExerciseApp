@@ -14,8 +14,10 @@ struct OnboardingFlowView: View {
                     if vm.step != .done {
                         let progress = vm.progress
                         ProgressView(value: progress.value, total: progress.total)
+                            .progressViewStyle(.linear)
                             .tint(AtlasTheme.neon)
                             .padding(.horizontal, 20)
+                            .scaleEffect(y: 1.6, anchor: .center)
                     }
                     
                     
@@ -29,7 +31,8 @@ struct OnboardingFlowView: View {
                             case .frequency:
                                 FrequencyStep(
                                     days: $vm.data.daysPerWeek,
-                                    minutesPerDay: $vm.data.minutesPerDay
+                                    minutesPerDay: $vm.data.minutesPerDay,
+                                    showMinutes: vm.data.experience != .beginner    // ← only non-beginner sees minutes
                                 )
                             case .reminder: ReminderStep(wants: $vm.data.wantsNotifications, time: $vm.data.reminderTime)
                             case .physique:
@@ -55,7 +58,16 @@ struct OnboardingFlowView: View {
                                         Text("Jump into the Weekly Planner to craft your own routine.")
                                             .foregroundStyle(.secondary)
                                     }
+
+                                    Button("Continue") { dismiss() }
+                                        .buttonStyle(AtlasButtonStyle())
+                                        .padding(.top, 4)
                                 }
+                                .padding(16)
+                                .autoAdvance(
+                                    after: AppConfig.Onboarding.completionHoldSeconds,
+                                    perform: { dismiss() }
+                                )
                                 .padding(16)
                             }
                         }
@@ -66,30 +78,33 @@ struct OnboardingFlowView: View {
                     .scrollIndicators(.hidden)
                     
                     VStack(spacing: 12) {
-                        if vm.step != .done {
-                            let title = vm.step == .plan ? "Finish" : "Continue"
-                            Button(title) { vm.next() }
-                                .buttonStyle(AtlasButtonStyle())
-                                .disabled(!vm.canContinue)
-                                .frame(maxWidth: .infinity)
-                        }
+                        let title = vm.step == .plan ? "Finish" : "Continue"
+
+                        // PRIMARY action (always in layout; fades out on .done)
+                        Button(title) { vm.next() }
+                            .buttonStyle(AtlasButtonStyle())
+                            .disabled(vm.step == .done || !vm.canContinue)
+                            .opacity(vm.step == .done ? 0 : 1)
+                            .frame(maxWidth: .infinity)
+
+                        // SECONDARY actions row (always in layout; fades out on .experience & .done)
+                        let hideSecondary = (vm.step == .experience || vm.step == .done)
 
                         HStack(spacing: 12) {
-                            if vm.step != .experience && vm.step != .done {
-                                Button("Back") { vm.back() }
-                                    .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
-                                    .frame(maxWidth: 160)
-                            }
+                            Button("Back") { vm.back() }
+                                .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
+                                .frame(maxWidth: 180)
 
-                            if vm.step != .experience && vm.step != .done {
-                                Button("Skip") { vm.skip() }
-                                    .buttonStyle(AtlasButtonStyle())
-                                    .frame(maxWidth: 160)
-                            }
+                            Button("Skip") { vm.skip() }
+                                .buttonStyle(AtlasButtonStyle())
+                                .frame(maxWidth: 180)
                         }
+                        .opacity(hideSecondary ? 0 : 1)
+                        .allowsHitTesting(!hideSecondary)
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 12)
+                    .animation(.easeInOut(duration: 1.00), value: vm.step)  // smooth fade, no layout “morphs”
                 }
             }
             .toolbar {
@@ -100,11 +115,6 @@ struct OnboardingFlowView: View {
             .navigationTitle("Onboarding")
             .navigationBarTitleDisplayMode(.inline)
             // iOS 17+ onChange variant: two-parameter closure
-            .onChange(of: vm.step) { _, newValue in
-                if newValue == .done {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { dismiss() }
-                }
-            }
         }
     }
 }
@@ -149,23 +159,26 @@ private struct ExperienceStep: View {
 private struct FrequencyStep: View {
     @Binding var days: Int
     @Binding var minutesPerDay: Int
-    
+    var showMinutes: Bool = true          // ← new
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Your weekly rhythm").font(.title2.bold()).gradientForeground()
-            
+
             Stepper("Days per week: \(days)", value: $days, in: 1...7)
                 .padding(.vertical, 8)
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Time per day")
-                    .font(.headline)
-                Stepper("\(minutesPerDay) minutes", value: $minutesPerDay, in: 10...180, step: 5)
-                Text("Helps size workouts to fit your schedule.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+
+            if showMinutes {               // ← wrap this section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Time per day")
+                        .font(.headline)
+                    Stepper("\(minutesPerDay) minutes", value: $minutesPerDay, in: 10...180, step: 5)
+                    Text("Helps size workouts to fit your schedule.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
-            
+
             Text("You can refine your plan later in Weekly Planner.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)

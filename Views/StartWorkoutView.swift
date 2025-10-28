@@ -43,7 +43,7 @@ struct StartWorkoutView: View {
             vm.refreshPlanSuggestion()
             planSnapshot = PlannerStore.shared.load()
         }
-        .onChange(of: vm.planSuggestion) { _ in
+        .onReceive(vm.$planSuggestion.dropFirst()) { _ in
             planSnapshot = PlannerStore.shared.load()
         }
         .toolbar {
@@ -500,3 +500,6 @@ private struct EditSetSheet: View {
         }
     }
 }
+
+#Preview("Light") { AtlasTabRoot().preferredColorScheme(.light) }
+#Preview("Dark")  { AtlasTabRoot().preferredColorScheme(.dark) }
