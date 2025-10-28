@@ -53,7 +53,7 @@ struct StartWorkoutView: View {
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 12) {
-                        Button("Autofill last") { autofillFromLast() }
+                        Button("Autofill last") { vm.autofillFromLast() }
                         Button("Finish") { showFinishAlert = true }
                     }
                 }
@@ -233,85 +233,263 @@ struct StartWorkoutView: View {
 
     // MARK: - Session Logger
     private var sessionLogger: some View {
-        List {
-            Section {
-                HStack {
-                    Text(vm.selectedTemplate ?? "Workout")
+        VStack(spacing: 0) {
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 24) {
+                    sessionHeader
+                    todaysPlanSection
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 160)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            loggingPanel
+        }
+    }
+
+    private var currentWorkoutDefinition: WorkoutDefinition? {
+        guard vm.currentWorkoutIndex >= 0, vm.currentWorkoutIndex < vm.todaysWorkouts.count else { return nil }
+        return vm.todaysWorkouts[vm.currentWorkoutIndex]
+    }
+
+    private var currentExerciseEntry: ExerciseEntry? {
+        guard let workout = currentWorkoutDefinition else { return nil }
+        return vm.exercise(for: workout.id)
+    }
+
+    private var sessionHeader: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(vm.selectedTemplate ?? "Workout")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(AtlasTheme.textPrimary)
+
+                Spacer()
+
+                if let start = vm.startTime {
+                    Text(start, style: .timer)
+                        .monospacedDigit()
+                        .font(.title3.weight(.semibold))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 6)
+                        .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                }
+            }
+
+            if let suggestion = vm.planSuggestion,
+               suggestion.isToday,
+               !suggestion.areas.isEmpty {
+                Text(suggestion.areas.map { $0.displayName }.joined(separator: " • "))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            } else if let focus = currentWorkoutDefinition?.area.displayName {
+                Text(focus)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text("Keep momentum by logging each set below — it all feeds your progress trends.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
+        .padding(24)
+        .glassCard(cornerRadius: 26)
+    }
+
+    private var todaysPlanSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Today's plan")
                         .font(.title3.bold())
-                    Spacer()
-                    if let start = vm.startTime {
-                        Text(start, style: .timer)
-                            .monospacedDigit()
+                        .foregroundStyle(AtlasTheme.textPrimary)
+
+                    if let workout = currentWorkoutDefinition {
+                        Text("Up next: \(workout.name)")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                .listRowBackground(Color.clear)
+
+                Spacer()
+
+                if !vm.todaysWorkouts.isEmpty {
+                    let completed = vm.completedWorkoutIDs.count
+                    let total = vm.todaysWorkouts.count
+                    Text("\(completed)/\(total) complete")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(AtlasTheme.gradient.opacity(0.14), in: Capsule())
+                }
+            }
+
+            if vm.todaysWorkouts.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("No workouts planned today")
+                        .font(.headline)
+                        .foregroundStyle(AtlasTheme.textPrimary)
+
+                    Text("Add a custom move to start logging, or schedule sessions from the Plan tab.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        vm.showAddExercise = true
+                    } label: {
+                        Label("Add custom movement", systemImage: "plus")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(Array(vm.todaysWorkouts.enumerated()), id: \.element.id) { index, workout in
+                        WorkoutProgressRow(
+                            workout: workout,
+                            isCurrent: index == vm.currentWorkoutIndex,
+                            isCompleted: vm.isCompleted(workout.id),
+                            onSelect: {
+                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                    vm.selectWorkout(with: workout.id)
+                                }
+                            },
+                            onToggleComplete: {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    vm.toggleCompletion(for: workout.id)
+                                }
+                            }
+                        )
+                    }
+                }
+
+                Text("Tap a card to focus logging on that workout. Check it off once you've completed the sets.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(24)
+        .glassCard(cornerRadius: 26)
+    }
+
+    private var loggingPanel: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            if let workout = currentWorkoutDefinition,
+               let exercise = currentExerciseEntry {
+                HStack(alignment: .center) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Log this workout")
+                            .font(.headline)
+                            .foregroundStyle(AtlasTheme.textPrimary)
+                        Text(workout.name)
+                            .font(.title3.bold())
+                            .foregroundStyle(AtlasTheme.textPrimary)
+                    }
+                    Spacer()
+                    if vm.completedWorkoutIDs.contains(workout.id) {
+                        Label("Completed", systemImage: "checkmark.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AtlasTheme.accentGreen)
+                    }
+                }
+
+                Divider().opacity(0.15)
+
+                if exercise.sets.isEmpty {
+                    Text("No sets yet. Use the controls below to log your first set.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    VStack(spacing: 10) {
+                        ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Set \(index + 1)")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AtlasTheme.textPrimary)
+                                    Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "slider.horizontal.3")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(AtlasTheme.border, lineWidth: 1)
+                            )
+                            .contextMenu {
+                                Button("Edit") {
+                                    editExerciseID = exercise.id
+                                    editSetIndex = index
+                                    editReps = set.reps
+                                    editWeight = set.weight
+                                    editUnits = set.units
+                                    showEditSheet = true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                AddSetInline { reps, weight, units in
+                    vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
+                }
+                .padding(.top, 4)
+            } else if vm.todaysWorkouts.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Ready when you are")
+                        .font(.headline)
+                        .foregroundStyle(AtlasTheme.textPrimary)
+                    Text("Add a movement above to start tracking reps, sets and load.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } else {
+                Text("Select a workout above to begin logging reps, sets and weight.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !vm.todaysWorkouts.isEmpty {
+                Divider().opacity(0.08)
 
                 Button {
                     vm.showAddExercise = true
                 } label: {
-                    Label("Add Exercise", systemImage: "plus.circle.fill")
+                    Label("Add custom movement", systemImage: "plus")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.plain)
-                .listRowBackground(Color.clear)
-            }
-
-            ForEach(vm.exercises) { exercise in
-                Section(exercise.name) {
-                    let enumeratedSets = Array(exercise.sets.enumerated())
-
-                    ForEach(enumeratedSets, id: \.offset) { index, set in
-                        HStack {
-                            Text("Set \(index + 1)")
-                            Spacer()
-                            Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .contentShape(Rectangle())
-                        .contextMenu {
-                            Button("Edit") {
-                                editExerciseID = exercise.id
-                                editSetIndex = index
-                                editReps = set.reps
-                                editWeight = set.weight
-                                editUnits = set.units
-                                showEditSheet = true
-                            }
-                        }
-                    }
-
-                    AddSetRow {
-                        AddSetInline { reps, weight, units in
-                            vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
-                        }
-                    }
-
-                    Button(role: .destructive) {
-                        vm.removeExercise(exercise.id)
-                    } label: {
-                        Text("Remove Exercise")
-                    }
-                }
-                .listRowBackground(Color.clear)
+                .buttonStyle(AtlasButtonStyle())
             }
         }
-        .listStyle(.insetGrouped)
-        .scrollContentBackground(.hidden)
-        .background(.clear)
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .fill(AtlasTheme.bgElevated.opacity(0.96))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 30, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.12), radius: 18, x: 0, y: 12)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 24)
     }
 
-    // MARK: - Autofill from last session (view-local, no VM change required)
-    private func autofillFromLast() {
-        guard let template = vm.selectedTemplate else { return }
-        let history = WorkoutStore.shared.load()
-        guard let last = history.last(where: { $0.template == template }) else { return }
-        vm.exercises = last.exercises.map { ex in
-            var copy = ExerciseEntry(name: ex.name)
-            copy.sets = ex.sets.map { SetEntry(reps: $0.reps, weight: $0.weight, units: $0.units) }
-            return copy
-        }
-    }
 }
 
 private struct TemplateCard: View {
@@ -348,6 +526,77 @@ private struct TemplateCard: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(AtlasTheme.border, lineWidth: 1)
         )
+    }
+}
+
+private struct WorkoutProgressRow: View {
+    let workout: WorkoutDefinition
+    let isCurrent: Bool
+    let isCompleted: Bool
+    var onSelect: () -> Void
+    var onToggleComplete: () -> Void
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Button(action: onToggleComplete) {
+                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(isCompleted ? AtlasTheme.accentGreen : .secondary)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .opacity(isCurrent || isCompleted ? 1 : 0.35)
+            .allowsHitTesting(isCurrent || isCompleted)
+
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(workout.name)
+                        .font(.headline)
+                        .foregroundStyle(AtlasTheme.textPrimary)
+                    Spacer()
+                    if isCompleted {
+                        Text("Done")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AtlasTheme.accentGreen)
+                    } else if isCurrent {
+                        Text("In progress")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AtlasTheme.accentGreen)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    Text(workout.area.displayName)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                    Text(workout.equipment)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+
+                Text(workout.summary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(isCurrent ? AtlasTheme.gradient.opacity(0.22) : AtlasTheme.cardFill)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(isCurrent ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: isCurrent ? 1.6 : 1)
+            )
+            .onTapGesture(perform: onSelect)
+        }
+        .padding(.vertical, 2)
+        .opacity(isCompleted ? 0.55 : (isCurrent ? 1 : 0.82))
+        .animation(.easeInOut(duration: 0.24), value: isCurrent)
+        .animation(.easeInOut(duration: 0.24), value: isCompleted)
     }
 }
 
@@ -431,13 +680,6 @@ private struct AddExerciseSheet: View {
                 }
             }
         }
-    }
-}
-
-private struct AddSetRow<Content: View>: View {
-    var content: () -> Content
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) { content() }
     }
 }
 
