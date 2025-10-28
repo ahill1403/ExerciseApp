@@ -94,6 +94,13 @@ final class OnboardingViewModel: ObservableObject {
             }
             goToNextInPath()
 
+        case .reminder:
+            if !path.contains(.plan) {
+                complete(applyRecommended: true)
+            } else {
+                goToNextInPath()
+            }
+
         case .physique:
             // Prepare a recommended plan before Plan step on the full path
             recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())

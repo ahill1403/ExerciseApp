@@ -36,6 +36,7 @@ private let tabSpecs: [TabSpec] = [
 
 struct AtlasTabRoot: View {
     @State private var selected: AtlasTab = .home
+    @State private var hideTabBar = false
 
     var body: some View {
         ZStack {
@@ -55,7 +56,12 @@ struct AtlasTabRoot: View {
             }
         }
         .overlay(alignment: .bottom) {
-            AtlasTabBar(selected: $selected)
+            if !hideTabBar {
+                AtlasTabBar(selected: $selected)
+            }
+        }
+        .onChange(of: selected) {
+            hideTabBar = (selected == .workout)
         }
     }
 }
