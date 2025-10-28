@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  AtlasFit
+//  REPS
 //
 
 import SwiftUI
@@ -84,7 +84,7 @@ struct ContentView: View {
                     .safeAreaPadding(.bottom, 120)
                 }
             }
-            .navigationTitle("AtlasFit")
+            .navigationTitle("REPS")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // Profile button (top-left) → Edit Profile

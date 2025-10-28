@@ -1,13 +1,13 @@
 //
-//  AtlasFitUITestsLaunchTests.swift
-//  AtlasFitUITests
+//  REPSUITestsLaunchTests.swift
+//  REPSUITests
 //
 //  Created by Aaron Hill on 9/9/25.
 //
 
 import XCTest
 
-final class AtlasFitUITestsLaunchTests: XCTestCase {
+final class REPSUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

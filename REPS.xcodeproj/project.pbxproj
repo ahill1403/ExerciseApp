@@ -33,23 +33,23 @@
 			containerPortal = 9C35F6E42E70B349006EC7E2 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 9C35F6EB2E70B349006EC7E2;
-			remoteInfo = AtlasFit;
+			remoteInfo = REPS;
 		};
 		9C35F7072E70B34A006EC7E2 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 9C35F6E42E70B349006EC7E2 /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = 9C35F6EB2E70B349006EC7E2;
-			remoteInfo = AtlasFit;
+			remoteInfo = REPS;
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeekPlanGrid.swift; sourceTree = "<group>"; };
-		9C35F6EC2E70B349006EC7E2 /* AtlasFit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AtlasFit.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C35F6EC2E70B349006EC7E2 /* REPS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = REPS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C35F6F12E70B349006EC7E2 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		9C35F6FC2E70B34A006EC7E2 /* AtlasFitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasFitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		9C35F7062E70B34A006EC7E2 /* AtlasFitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AtlasFitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C35F6FC2E70B34A006EC7E2 /* REPSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = REPSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9C35F7062E70B34A006EC7E2 /* REPSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = REPSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C35F71E2E70B452006EC7E2 /* WeeklyPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlannerView.swift; sourceTree = "<group>"; };
 		9C3BE2CE2E75F14B00A00C25 /* WeeklyPlan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlan.swift; sourceTree = "<group>"; };
 		9C7A69972E8F061D00BA5C4C /* AtlasTabRoot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtlasTabRoot.swift; sourceTree = "<group>"; };
@@ -70,19 +70,19 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		9C35F6EE2E70B349006EC7E2 /* AtlasFit */ = {
+		9C35F6EE2E70B349006EC7E2 /* REPS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AtlasFit;
+			path = REPS;
 			sourceTree = "<group>";
 		};
-		9C35F6FF2E70B34A006EC7E2 /* AtlasFitTests */ = {
+		9C35F6FF2E70B34A006EC7E2 /* REPSTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AtlasFitTests;
+			path = REPSTests;
 			sourceTree = "<group>";
 		};
-		9C35F7092E70B34A006EC7E2 /* AtlasFitUITests */ = {
+		9C35F7092E70B34A006EC7E2 /* REPSUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = AtlasFitUITests;
+			path = REPSUITests;
 			sourceTree = "<group>";
 		};
 		9C85FF2D2E733FFD0085CEC1 /* Services */ = {
@@ -136,9 +136,9 @@
 				9C35F7192E70B3FE006EC7E2 /* Models */,
 				9C35F71A2E70B3FE006EC7E2 /* ViewModels */,
 				9C35F71B2E70B3FE006EC7E2 /* Views */,
-				9C35F6EE2E70B349006EC7E2 /* AtlasFit */,
-				9C35F6FF2E70B34A006EC7E2 /* AtlasFitTests */,
-				9C35F7092E70B34A006EC7E2 /* AtlasFitUITests */,
+				9C35F6EE2E70B349006EC7E2 /* REPS */,
+				9C35F6FF2E70B34A006EC7E2 /* REPSTests */,
+				9C35F7092E70B34A006EC7E2 /* REPSUITests */,
 				9C35F6ED2E70B349006EC7E2 /* Products */,
 				9C6FA7CB2EABCC2600B6FEC9 /* Recovered References */,
 			);
@@ -147,9 +147,9 @@
 		9C35F6ED2E70B349006EC7E2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				9C35F6EC2E70B349006EC7E2 /* AtlasFit.app */,
-				9C35F6FC2E70B34A006EC7E2 /* AtlasFitTests.xctest */,
-				9C35F7062E70B34A006EC7E2 /* AtlasFitUITests.xctest */,
+				9C35F6EC2E70B349006EC7E2 /* REPS.app */,
+				9C35F6FC2E70B34A006EC7E2 /* REPSTests.xctest */,
+				9C35F7062E70B34A006EC7E2 /* REPSUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -212,9 +212,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		9C35F6EB2E70B349006EC7E2 /* AtlasFit */ = {
+		9C35F6EB2E70B349006EC7E2 /* REPS */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9C35F7102E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "AtlasFit" */;
+			buildConfigurationList = 9C35F7102E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "REPS" */;
 			buildPhases = (
 				9C35F6E82E70B349006EC7E2 /* Sources */,
 				9C35F6E92E70B349006EC7E2 /* Frameworks */,
@@ -225,21 +225,21 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				9C35F6EE2E70B349006EC7E2 /* AtlasFit */,
+				9C35F6EE2E70B349006EC7E2 /* REPS */,
 				9C85FF2D2E733FFD0085CEC1 /* Services */,
 				9C85FF392E7340960085CEC1 /* UI */,
 				9CD8C3AC2EB03F6D00F53CFF /* Support */,
 			);
-			name = AtlasFit;
+			name = REPS;
 			packageProductDependencies = (
 			);
-			productName = AtlasFit;
-			productReference = 9C35F6EC2E70B349006EC7E2 /* AtlasFit.app */;
+			productName = REPS;
+			productReference = 9C35F6EC2E70B349006EC7E2 /* REPS.app */;
 			productType = "com.apple.product-type.application";
 		};
-		9C35F6FB2E70B34A006EC7E2 /* AtlasFitTests */ = {
+		9C35F6FB2E70B34A006EC7E2 /* REPSTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9C35F7132E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "AtlasFitTests" */;
+			buildConfigurationList = 9C35F7132E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "REPSTests" */;
 			buildPhases = (
 				9C35F6F82E70B34A006EC7E2 /* Sources */,
 				9C35F6F92E70B34A006EC7E2 /* Frameworks */,
@@ -251,18 +251,18 @@
 				9C35F6FE2E70B34A006EC7E2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				9C35F6FF2E70B34A006EC7E2 /* AtlasFitTests */,
+				9C35F6FF2E70B34A006EC7E2 /* REPSTests */,
 			);
-			name = AtlasFitTests;
+			name = REPSTests;
 			packageProductDependencies = (
 			);
-			productName = AtlasFitTests;
-			productReference = 9C35F6FC2E70B34A006EC7E2 /* AtlasFitTests.xctest */;
+			productName = REPSTests;
+			productReference = 9C35F6FC2E70B34A006EC7E2 /* REPSTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		9C35F7052E70B34A006EC7E2 /* AtlasFitUITests */ = {
+		9C35F7052E70B34A006EC7E2 /* REPSUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9C35F7162E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "AtlasFitUITests" */;
+			buildConfigurationList = 9C35F7162E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "REPSUITests" */;
 			buildPhases = (
 				9C35F7022E70B34A006EC7E2 /* Sources */,
 				9C35F7032E70B34A006EC7E2 /* Frameworks */,
@@ -274,13 +274,13 @@
 				9C35F7082E70B34A006EC7E2 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				9C35F7092E70B34A006EC7E2 /* AtlasFitUITests */,
+				9C35F7092E70B34A006EC7E2 /* REPSUITests */,
 			);
-			name = AtlasFitUITests;
+			name = REPSUITests;
 			packageProductDependencies = (
 			);
-			productName = AtlasFitUITests;
-			productReference = 9C35F7062E70B34A006EC7E2 /* AtlasFitUITests.xctest */;
+			productName = REPSUITests;
+			productReference = 9C35F7062E70B34A006EC7E2 /* REPSUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -306,7 +306,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 9C35F6E72E70B349006EC7E2 /* Build configuration list for PBXProject "AtlasFit" */;
+			buildConfigurationList = 9C35F6E72E70B349006EC7E2 /* Build configuration list for PBXProject "REPS" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -320,9 +320,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				9C35F6EB2E70B349006EC7E2 /* AtlasFit */,
-				9C35F6FB2E70B34A006EC7E2 /* AtlasFitTests */,
-				9C35F7052E70B34A006EC7E2 /* AtlasFitUITests */,
+				9C35F6EB2E70B349006EC7E2 /* REPS */,
+				9C35F6FB2E70B34A006EC7E2 /* REPSTests */,
+				9C35F7052E70B34A006EC7E2 /* REPSUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -396,12 +396,12 @@
 /* Begin PBXTargetDependency section */
 		9C35F6FE2E70B34A006EC7E2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9C35F6EB2E70B349006EC7E2 /* AtlasFit */;
+			target = 9C35F6EB2E70B349006EC7E2 /* REPS */;
 			targetProxy = 9C35F6FD2E70B34A006EC7E2 /* PBXContainerItemProxy */;
 		};
 		9C35F7082E70B34A006EC7E2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 9C35F6EB2E70B349006EC7E2 /* AtlasFit */;
+			target = 9C35F6EB2E70B349006EC7E2 /* REPS */;
 			targetProxy = 9C35F7072E70B34A006EC7E2 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -533,15 +533,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AtlasFit/AtlasFit.entitlements;
+				CODE_SIGN_ENTITLEMENTS = REPS/REPS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"AtlasFit/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"REPS/Preview Content\"";
 				DEVELOPMENT_TEAM = 4RCU277L6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "AtlasFit reads your workouts and weight to show meaningful progress.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "AtlasFit writes your completed workouts so they appear in the Health app.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "REPS reads your workouts and weight to show meaningful progress.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "REPS writes your completed workouts so they appear in the Health app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -553,7 +553,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFit;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.REPS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -570,15 +570,15 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_ENTITLEMENTS = AtlasFit/AtlasFit.entitlements;
+				CODE_SIGN_ENTITLEMENTS = REPS/REPS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_ASSET_PATHS = "\"AtlasFit/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"REPS/Preview Content\"";
 				DEVELOPMENT_TEAM = 4RCU277L6S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "AtlasFit reads your workouts and weight to show meaningful progress.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "AtlasFit writes your completed workouts so they appear in the Health app.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "REPS reads your workouts and weight to show meaningful progress.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "REPS writes your completed workouts so they appear in the Health app.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -590,7 +590,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFit;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.REPS;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -611,12 +611,12 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.REPSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AtlasFit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AtlasFit";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/REPS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/REPS";
 			};
 			name = Debug;
 		};
@@ -629,12 +629,12 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFitTests;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.REPSTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/AtlasFit.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/AtlasFit";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/REPS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/REPS";
 			};
 			name = Release;
 		};
@@ -645,12 +645,12 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFitUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.REPSUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = AtlasFit;
+				TEST_TARGET_NAME = REPS;
 			};
 			name = Debug;
 		};
@@ -661,19 +661,19 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.AtlasFitUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = edu.cedarville.itm3300.ahill196.REPSUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = AtlasFit;
+				TEST_TARGET_NAME = REPS;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9C35F6E72E70B349006EC7E2 /* Build configuration list for PBXProject "AtlasFit" */ = {
+		9C35F6E72E70B349006EC7E2 /* Build configuration list for PBXProject "REPS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9C35F70E2E70B34A006EC7E2 /* Debug */,
@@ -682,7 +682,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9C35F7102E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "AtlasFit" */ = {
+		9C35F7102E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "REPS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9C35F7112E70B34A006EC7E2 /* Debug */,
@@ -691,7 +691,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9C35F7132E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "AtlasFitTests" */ = {
+		9C35F7132E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "REPSTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9C35F7142E70B34A006EC7E2 /* Debug */,
@@ -700,7 +700,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		9C35F7162E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "AtlasFitUITests" */ = {
+		9C35F7162E70B34A006EC7E2 /* Build configuration list for PBXNativeTarget "REPSUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				9C35F7172E70B34A006EC7E2 /* Debug */,

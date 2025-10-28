@@ -1,6 +1,6 @@
 //
 //  AtlasTabRoot.swift
-//  AtlasFit
+//  REPS
 //
 
 import SwiftUI
@@ -238,7 +238,7 @@ struct SettingsHubView: View {
         ZStack {
             NeonMotionBackground()
             VStack(spacing: 16) {
-                SectionHeader(title: "Settings", subtitle: "Personalize AtlasFit")
+                SectionHeader(title: "Settings", subtitle: "Personalize REPS")
                 NavigationLink("Edit Profile") { EditProfileView() }
                     .buttonStyle(.plain)
                     .frame(maxWidth: .infinity, alignment: .leading)

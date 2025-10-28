@@ -1,6 +1,6 @@
 //
 //  AtlasUI.swift — Emerald & Pine (Light & Dark)
-//  AtlasFit
+//  REPS
 //
 
 import SwiftUI
