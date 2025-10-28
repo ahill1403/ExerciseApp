@@ -337,9 +337,9 @@ private struct LoggingPanel: View {
 
             if !vm.todaysWorkouts.isEmpty { Divider().opacity(0.08) }
         }
-        .padding(.top, 12)
+        .padding(.top, 4)
         .padding(.horizontal, 20)
-        .padding(.bottom, 8)
+        .padding(.bottom, 20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             UnevenRoundedRectangle(
@@ -481,7 +481,7 @@ private struct AddSetInline: View {
         VStack(alignment: .leading, spacing: 16) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .bottom, spacing: 12) {
-                    CompactIntAdjuster(title: "Reps", value: $reps, range: 1...50)
+                    CompactIntAdjuster(title: "Reps", value: $reps, range: 1...100)
                     CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
                         .frame(width: 140)
                     logButton
@@ -489,7 +489,7 @@ private struct AddSetInline: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 12) {
-                        CompactIntAdjuster(title: "Reps", value: $reps, range: 1...50)
+                        CompactIntAdjuster(title: "Reps", value: $reps, range: 1...100)
                         CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
                     }
                     HStack(spacing: 12) { logButton }
@@ -814,3 +814,5 @@ private struct WorkoutProgressRow: View {
         .accessibilityAddTraits(.isButton)
     }
 }
+
+#Preview("Dark")  { AtlasTabRoot().preferredColorScheme(.dark) }
