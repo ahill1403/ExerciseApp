@@ -37,6 +37,7 @@ struct StartWorkoutView: View {
 
     @State private var planSnapshot: WeeklyPlan = PlannerStore.shared.load()
     @State private var expandedTemplateID: StartWorkoutViewModel.TemplateInfo.ID?
+    @State private var showAllTemplates = false
 
     private let templateColumns: [GridItem] = [
         GridItem(.flexible(), spacing: 14),
@@ -67,7 +68,10 @@ struct StartWorkoutView: View {
         .onChange(of: vm.isLogging) {
             let isLogging = vm.isLogging
             onLoggingStateChange(isLogging)
-            if isLogging { expandedTemplateID = nil }
+            if isLogging {
+                expandedTemplateID = nil
+                showAllTemplates = false
+            }
         }
         // Keep toolbar items structurally present; gate content inside
         .toolbar {
@@ -245,8 +249,10 @@ struct StartWorkoutView: View {
                 .foregroundColor(.secondary)
                 .padding(.bottom, 2)
 
+            let templatesToShow = showAllTemplates ? vm.templates : Array(vm.templates.prefix(2))
+
             LazyVGrid(columns: templateColumns, spacing: 14) {
-                ForEach(vm.templates) { template in
+                ForEach(templatesToShow) { template in
                     let isExpanded = expandedTemplateID == template.id
                     TemplateCard(
                         template: template,
@@ -264,6 +270,32 @@ struct StartWorkoutView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: expandedTemplateID)
+
+            if vm.templates.count > 2 {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showAllTemplates.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Text(showAllTemplates ? "Show fewer" : "More templates")
+                            .font(.subheadline.weight(.semibold))
+                        Image(systemName: showAllTemplates ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.plain)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(AtlasTheme.cardFill)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(AtlasTheme.border, lineWidth: 1)
+                )
+            }
         }
         .glassCard(cornerRadius: 22)
     }
@@ -466,7 +498,12 @@ private struct LoggingPanel: View {
     @Binding var activeSheet: ActiveSheet?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 18) {
+            Capsule()
+                .fill(Color.white.opacity(0.3))
+                .frame(width: 40, height: 5)
+                .frame(maxWidth: .infinity)
+
             if let workout = currentWorkoutDefinition,
                let exercise = currentExerciseEntry {
                 header(workout: workout)
@@ -530,20 +567,26 @@ private struct LoggingPanel: View {
                 }
             }
         }
-        .padding(.vertical, 18)
+        .padding(.top, 12)
         .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity)
+        .padding(.bottom, 20)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(AtlasTheme.bgElevated.opacity(0.94))
+            UnevenRoundedRectangle(topLeading: 28, topTrailing: 28, bottomLeading: 0, bottomTrailing: 0)
+                .fill(AtlasTheme.bgElevated.opacity(0.96))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 30, style: .continuous)
+            UnevenRoundedRectangle(topLeading: 28, topTrailing: 28, bottomLeading: 0, bottomTrailing: 0)
                 .stroke(AtlasTheme.border, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 8)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 18)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
+                .padding(.horizontal, 12)
+        }
+        .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: -6)
+        .ignoresSafeArea(edges: .bottom)
     }
 
     @ViewBuilder
@@ -577,38 +620,48 @@ private struct LoggingPanel: View {
 
     @ViewBuilder
     private func setsList(exercise: ExerciseEntry) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
             ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Set \(index + 1)")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(AtlasTheme.textPrimary)
-                        Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                Button {
+                    editExerciseID = exercise.id
+                    editSetIndex = index
+                    editReps = set.reps
+                    editWeight = set.weight
+                    editUnits = set.units
+                    activeSheet = .editSet
+                } label: {
+                    HStack(alignment: .center, spacing: 14) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Set \(index + 1)")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundColor(AtlasTheme.textPrimary)
+
+                            Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        Label("Edit", systemImage: "slider.horizontal.3")
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(10)
+                            .background(
+                                Circle()
+                                    .fill(AtlasTheme.cardFill)
+                            )
                     }
-                    Spacer()
-                    Image(systemName: "slider.horizontal.3")
-                        .foregroundColor(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 18, style: .continuous)
+                            .stroke(AtlasTheme.border, lineWidth: 1)
+                    )
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(AtlasTheme.border, lineWidth: 1)
-                )
-                .contextMenu {
-                    Button("Edit") {
-                        editExerciseID = exercise.id
-                        editSetIndex = index
-                        editReps = set.reps
-                        editWeight = set.weight
-                        editUnits = set.units
-                        activeSheet = .editSet
-                    }
-                }
+                .buttonStyle(.plain)
             }
         }
     }
@@ -862,25 +915,150 @@ private struct AddSetInline: View {
     var onAdd: (_ reps: Int, _ weight: Double, _ units: Units) -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            Stepper("Reps: \(reps)", value: $reps, in: 1...50)
-            Spacer()
-            TextField("Weight", value: $weight, format: .number)
-                .keyboardType(.decimalPad)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 90)
-            Picker("", selection: $units) {
-                ForEach(Units.allCases, id: \.self) { unit in
-                    Text(unit.rawValue).tag(unit)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick log")
+                .font(.footnote.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .bottom, spacing: 12) {
+                    CompactIntAdjuster(title: "Reps", value: $reps, range: 1...50)
+
+                    CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
+
+                    Picker("Units", selection: $units) {
+                        ForEach(Units.allCases, id: \.self) { unit in
+                            Text(unit.rawValue).tag(unit)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 140)
+
+                    logButton
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        CompactIntAdjuster(title: "Reps", value: $reps, range: 1...50)
+                        CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
+                    }
+
+                    HStack(spacing: 12) {
+                        Picker("Units", selection: $units) {
+                            ForEach(Units.allCases, id: \.self) { unit in
+                                Text(unit.rawValue).tag(unit)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+
+                        logButton
+                    }
                 }
             }
-            .frame(width: 80)
-            Button {
-                onAdd(reps, weight, units)
-            } label: {
-                Image(systemName: "plus.circle.fill").font(.title3)
-            }
         }
+    }
+
+    private var logButton: some View {
+        Button {
+            onAdd(reps, weight, units)
+        } label: {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(10)
+                .background(
+                    Circle()
+                        .fill(AtlasTheme.gradient)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Log set")
+    }
+}
+
+private struct CompactIntAdjuster: View {
+    let title: String
+    @Binding var value: Int
+    let range: ClosedRange<Int>
+    var step: Int = 1
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 0) {
+                StepButton(systemName: "minus") {
+                    value = max(range.lowerBound, value - step)
+                }
+
+                Text("\(value)")
+                    .font(.title3.bold())
+                    .frame(minWidth: 54)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(AtlasTheme.textPrimary)
+
+                StepButton(systemName: "plus") {
+                    value = min(range.upperBound, value + step)
+                }
+            }
+            .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(AtlasTheme.border, lineWidth: 1)
+            )
+        }
+    }
+}
+
+private struct CompactDoubleAdjuster: View {
+    let title: String
+    @Binding var value: Double
+    var step: Double = 2.5
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title.uppercased())
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            HStack(spacing: 0) {
+                StepButton(systemName: "minus") {
+                    value = max(0, value - step)
+                }
+
+                Text(value.formatted(.number.precision(.fractionLength(0))))
+                    .font(.title3.bold())
+                    .frame(minWidth: 64)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(AtlasTheme.textPrimary)
+
+                StepButton(systemName: "plus") {
+                    value += step
+                }
+            }
+            .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(AtlasTheme.border, lineWidth: 1)
+            )
+        }
+    }
+}
+
+private struct StepButton: View {
+    let systemName: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 18, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
