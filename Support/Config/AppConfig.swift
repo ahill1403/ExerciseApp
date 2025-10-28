@@ -1,6 +1,6 @@
 //
 //  AppConfig.swift
-//  AtlasFit
+//  REPS
 //
 //  Created by Aaron Hill on 10/27/25.
 //

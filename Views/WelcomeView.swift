@@ -1,6 +1,6 @@
 //
 //  WelcomeView.swift
-//  AtlasFit
+//  REPS
 //
 //  Created by Aaron Hill on 9/11/25.
 //
@@ -18,7 +18,7 @@ struct WelcomeView: View {
             VStack(spacing: 24) {
                 Spacer()
 
-                Text("AtlasFit").font(.system(size: 42, weight: .black, design: .rounded)).gradientForeground()
+                Text("REPS").font(.system(size: 42, weight: .black, design: .rounded)).gradientForeground()
 
                 Text("Strong Today.\nStronger Tomorrow.")
                     .multilineTextAlignment(.center)

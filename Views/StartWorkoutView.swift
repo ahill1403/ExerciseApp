@@ -1,6 +1,6 @@
 //
 //  StartWorkoutView.swift
-//  AtlasFit
+//  REPS
 //
 //  Created by Aaron Hill on 9/11/25.
 //
@@ -10,11 +10,13 @@ import SwiftUI
 private enum ActiveSheet: Identifiable {
     case addExercise
     case editSet
+    case manageSets
 
     var id: String {
         switch self {
         case .addExercise: return "addExercise"
         case .editSet:     return "editSet"
+        case .manageSets:  return "manageSets"
         }
     }
 }
@@ -122,6 +124,26 @@ struct StartWorkoutView: View {
                 }
             }
             .presentationDetents([.medium])
+        case .manageSets:
+            if let workout = currentWorkoutDefinition,
+               let exercise = currentExerciseEntry {
+                ManageSetsSheet(
+                    workout: workout,
+                    exercise: exercise,
+                    onSelectSet: { index, set in
+                        editExerciseID = exercise.id
+                        editSetIndex = index
+                        editReps = set.reps
+                        editWeight = set.weight
+                        editUnits = set.units
+                        activeSheet = .editSet
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            } else {
+                Text("No sets to manage right now.")
+                    .padding()
+            }
         }
     }
 
@@ -477,6 +499,20 @@ struct StartWorkoutView: View {
                 Text("Tap a card to focus logging on that workout. Check it off once you've completed the sets.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
+
+                if let exercise = currentExerciseEntry,
+                   !exercise.sets.isEmpty {
+                    Button {
+                        activeSheet = .manageSets
+                    } label: {
+                        Text("View and edit sets")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(AtlasButtonStyle())
+                    .padding(.top, 8)
+                }
             }
         }
         .padding(24)
@@ -513,7 +549,9 @@ private struct LoggingPanel: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 } else {
-                    setsList(exercise: exercise)
+                    Text("Use the button above to review or edit your logged sets.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
 
                 Divider().opacity(0.08)
@@ -569,7 +607,7 @@ private struct LoggingPanel: View {
         }
         .padding(.top, 12)
         .padding(.horizontal, 20)
-        .padding(.bottom, 20)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             UnevenRoundedRectangle(topLeading: 28, topTrailing: 28, bottomLeading: 0, bottomTrailing: 0)
@@ -585,7 +623,7 @@ private struct LoggingPanel: View {
                 .frame(height: 1)
                 .padding(.horizontal, 12)
         }
-        .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: -6)
+        .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: -2)
         .ignoresSafeArea(edges: .bottom)
     }
 
@@ -618,51 +656,76 @@ private struct LoggingPanel: View {
         }
     }
 
-    @ViewBuilder
-    private func setsList(exercise: ExerciseEntry) -> some View {
-        VStack(spacing: 10) {
-            ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
-                Button {
-                    editExerciseID = exercise.id
-                    editSetIndex = index
-                    editReps = set.reps
-                    editWeight = set.weight
-                    editUnits = set.units
-                    activeSheet = .editSet
-                } label: {
-                    HStack(alignment: .center, spacing: 14) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Set \(index + 1)")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(AtlasTheme.textPrimary)
+}
 
-                            Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+private struct ManageSetsSheet: View {
+    let workout: WorkoutDefinition
+    let exercise: ExerciseEntry
+    var onSelectSet: (Int, SetEntry) -> Void
 
-                        Spacer(minLength: 0)
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(workout.name)
+                            .font(.title3.bold())
+                            .foregroundColor(AtlasTheme.textPrimary)
 
-                        Label("Edit", systemImage: "slider.horizontal.3")
-                            .labelStyle(.iconOnly)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(10)
-                            .background(
-                                Circle()
-                                    .fill(AtlasTheme.cardFill)
-                            )
+                        Text(exercise.name)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(.secondary)
+
+                        Text("Tap a set below to make quick edits.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(AtlasTheme.border, lineWidth: 1)
-                    )
+
+                    if exercise.sets.isEmpty {
+                        Text("No sets logged yet — add one from the logger below.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
+                                Button {
+                                    onSelectSet(index, set)
+                                } label: {
+                                    HStack(alignment: .center, spacing: 16) {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Set \(index + 1)")
+                                                .font(.subheadline.weight(.semibold))
+                                                .foregroundColor(AtlasTheme.textPrimary)
+
+                                            Text("\(set.reps) reps × \(set.weight, specifier: "%.0f") \(set.units.rawValue)")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+
+                                        Spacer(minLength: 0)
+
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .padding(.horizontal, 18)
+                                    .padding(.vertical, 14)
+                                    .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                            .stroke(AtlasTheme.border, lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
                 }
-                .buttonStyle(.plain)
+                .padding(24)
             }
+            .background(AtlasTheme.bgBase)
+            .navigationTitle("Sets")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
