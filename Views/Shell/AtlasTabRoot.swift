@@ -59,6 +59,8 @@ struct AtlasTabRoot: View {
         .overlay(alignment: .bottom) {
             if !hideTabBar {
                 AtlasTabBar(selected: $selected)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .zIndex(1)
             }
         }
         .highPriorityGesture(tabSwipeGesture)
@@ -66,11 +68,13 @@ struct AtlasTabRoot: View {
             hideTabBar = (selected == .workout) && isWorkoutLogging
         }
         .onChange(of: selected) { newValue in
-            if newValue != .workout {
-                isWorkoutLogging = false
-                hideTabBar = false
-            } else {
-                hideTabBar = isWorkoutLogging
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                if newValue != .workout {
+                    isWorkoutLogging = false
+                    hideTabBar = false
+                } else {
+                    hideTabBar = isWorkoutLogging
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .atlasLoggingStateChanged)) { note in
@@ -205,6 +209,8 @@ private struct AtlasTabButton: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
         .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.06 : 1.0)
+        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: isSelected)
     }
 }
 

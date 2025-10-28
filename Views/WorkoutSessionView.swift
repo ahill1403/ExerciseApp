@@ -23,7 +23,6 @@ private enum ActiveSheet: Identifiable {
 
 struct WorkoutSessionView: View {
     @ObservedObject var vm: StartWorkoutViewModel
-    var onLoggingStateChange: (Bool) -> Void = { _ in }
 
     // Inline edit state
     @State private var editExerciseID: UUID? = nil
@@ -40,7 +39,7 @@ struct WorkoutSessionView: View {
     private let setCardAnimation = Animation.spring(response: 0.32, dampingFraction: 0.82)
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottom) {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
                     sessionHeader
@@ -48,10 +47,9 @@ struct WorkoutSessionView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
-                .padding(.bottom, 120)
+                .padding(.bottom, 160)
             }
-        }
-        .safeAreaInset(edge: .bottom) {
+
             LoggingPanel(
                 vm: vm,
                 currentWorkoutDefinition: currentWorkoutDefinition,
@@ -63,7 +61,9 @@ struct WorkoutSessionView: View {
                 editUnits: $editUnits,
                 activeSheet: $activeSheet
             )
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
+        .ignoresSafeArea(edges: .bottom)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 if vm.isLogging {
@@ -86,8 +86,6 @@ struct WorkoutSessionView: View {
         .sheet(item: $activeSheet) { sheet in
             sheetContent(for: sheet)
         }
-        .onAppear { onLoggingStateChange(vm.isLogging) }
-        .onChange(of: vm.isLogging) { onLoggingStateChange($0) }
         .onAppear {
             showSetManagerCard = (currentExerciseEntry?.sets.isEmpty == false)
         }

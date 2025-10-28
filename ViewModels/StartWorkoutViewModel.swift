@@ -13,6 +13,7 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published private(set) var todaysWorkouts: [WorkoutDefinition] = []
     @Published var currentWorkoutIndex: Int = 0
     @Published var completedWorkoutIDs: Set<String> = []
+    @Published var lastCompletionMessage: String?
 
     // Sheets
     @Published var showAddExercise = false
@@ -219,10 +220,12 @@ final class StartWorkoutViewModel: ObservableObject {
 #endif
         
         
-        reset()
+        lastCompletionMessage = buildCompletionMessage(from: session)
+
+        reset(clearCompletionMessage: false)
     }
-    
-    func reset() {
+
+    func reset(clearCompletionMessage: Bool = true) {
         selectedTemplate = nil
         isLogging = false
         exercises = []
@@ -232,6 +235,9 @@ final class StartWorkoutViewModel: ObservableObject {
         currentWorkoutIndex = 0
         workoutExerciseLookup = [:]
         refreshPlanSuggestion()
+        if clearCompletionMessage {
+            lastCompletionMessage = nil
+        }
     }
 
     func selectWorkout(with id: String) {
@@ -380,5 +386,34 @@ final class StartWorkoutViewModel: ObservableObject {
             }
         }
         return unique
+    }
+
+    private func buildCompletionMessage(from session: WorkoutSession) -> String {
+        let totalSets = session.exercises.reduce(0) { $0 + $1.sets.count }
+        let exerciseCount = session.exercises.count
+
+        var messageParts: [String] = []
+
+        if totalSets > 0 {
+            messageParts.append("\(totalSets) set\(totalSets == 1 ? "" : "s") logged")
+        } else {
+            messageParts.append("session saved")
+        }
+
+        if exerciseCount > 0 {
+            messageParts.append("across \(exerciseCount) exercise\(exerciseCount == 1 ? "" : "s")")
+        }
+
+        if let duration = session.duration, duration > 60 {
+            let minutes = Int(duration / 60)
+            if minutes > 0 {
+                messageParts.append("in \(minutes)-minute push")
+            }
+        }
+
+        let summary = messageParts.joined(separator: " • ")
+        let templateName = session.template
+
+        return "Nice work! \(templateName) complete — \(summary). Keep that momentum going!"
     }
 }

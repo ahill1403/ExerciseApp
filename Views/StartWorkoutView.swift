@@ -20,6 +20,7 @@ struct StartWorkoutView: View {
         GridItem(.flexible(), spacing: 14),
         GridItem(.flexible(), spacing: 14)
     ]
+    @State private var completionMessage: String?
 
     var body: some View {
         ZStack {
@@ -29,9 +30,8 @@ struct StartWorkoutView: View {
                 homeContent
             } else {
                 // The in-session UI is now separated.
-                WorkoutSessionView(vm: vm) { isLogging in
-                    NotificationCenter.default.post(name: .atlasLoggingStateChanged, object: isLogging)
-                }
+                WorkoutSessionView(vm: vm)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .navigationTitle("Start Workout")
@@ -43,6 +43,36 @@ struct StartWorkoutView: View {
         .onChange(of: vm.planSuggestion?.day) {
             // keep the planner peek in sync
             planSnapshot = PlannerStore.shared.load()
+        }
+        .overlay(alignment: .top) {
+            if let message = completionMessage {
+                EncouragementBanner(message: message)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.42, dampingFraction: 0.86), value: completionMessage)
+        .animation(.spring(response: 0.42, dampingFraction: 0.85), value: vm.isLogging)
+        .onAppear {
+            NotificationCenter.default.post(name: .atlasLoggingStateChanged, object: vm.isLogging)
+        }
+        .onChange(of: vm.isLogging) { isLogging in
+            NotificationCenter.default.post(name: .atlasLoggingStateChanged, object: isLogging)
+
+            if isLogging {
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+                    completionMessage = nil
+                }
+            } else if let message = vm.lastCompletionMessage, completionMessage != message {
+                presentCompletionMessage(message)
+            }
+        }
+        .onChange(of: vm.lastCompletionMessage) { message in
+            guard vm.isLogging == false, let message else { return }
+            if completionMessage != message {
+                presentCompletionMessage(message)
+            }
         }
     }
 
@@ -244,6 +274,51 @@ struct StartWorkoutView: View {
         let symbols = Calendar.current.weekdaySymbols
         let idx = (day - 1 + symbols.count) % symbols.count
         return symbols[idx]
+    }
+}
+
+private extension StartWorkoutView {
+    func presentCompletionMessage(_ message: String) {
+        completionMessage = message
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.88)) {
+                completionMessage = nil
+            }
+            vm.lastCompletionMessage = nil
+        }
+    }
+}
+
+private struct EncouragementBanner: View {
+    let message: String
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(AtlasTheme.gradient)
+
+            Text(message)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AtlasTheme.textPrimary)
+                .multilineTextAlignment(.leading)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AtlasTheme.bgElevated.opacity(0.95))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Workout complete. \(message)")
     }
 }
 
