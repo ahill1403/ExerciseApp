@@ -610,13 +610,18 @@ private struct LoggingPanel: View {
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            UnevenRoundedRectangle(topLeading: 28, topTrailing: 28, bottomLeading: 0, bottomTrailing: 0)
-                .fill(AtlasTheme.bgElevated.opacity(0.96))
+            UnevenRoundedRectangle(
+                cornerRadii: .init(topLeading: 28, bottomLeading: 0, bottomTrailing: 0, topTrailing: 28 )
+            )
+            .fill(AtlasTheme.bgElevated.opacity(0.96))
         )
         .overlay(
-            UnevenRoundedRectangle(topLeading: 28, topTrailing: 28, bottomLeading: 0, bottomTrailing: 0)
-                .stroke(AtlasTheme.border, lineWidth: 1)
+            UnevenRoundedRectangle(
+                cornerRadii: .init(topLeading: 28, bottomLeading: 0, bottomTrailing: 0, topTrailing: 28)
+            )
+            .stroke(AtlasTheme.border, lineWidth: 1)
         )
+
         .overlay(alignment: .top) {
             Rectangle()
                 .fill(Color.white.opacity(0.08))
