@@ -35,6 +35,9 @@ struct WorkoutSessionView: View {
     // Unified sheet controller
     @State private var activeSheet: ActiveSheet?
     @State private var showFinishAlert = false
+    @State private var showSetManagerCard = false
+
+    private let setCardAnimation = Animation.spring(response: 0.32, dampingFraction: 0.82)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -85,6 +88,19 @@ struct WorkoutSessionView: View {
         }
         .onAppear { onLoggingStateChange(vm.isLogging) }
         .onChange(of: vm.isLogging) { onLoggingStateChange($0) }
+        .onAppear {
+            showSetManagerCard = (currentExerciseEntry?.sets.isEmpty == false)
+        }
+        .onChange(of: currentExerciseEntry?.id) { _ in
+            withAnimation(setCardAnimation) {
+                showSetManagerCard = (currentExerciseEntry?.sets.isEmpty == false)
+            }
+        }
+        .onChange(of: currentExerciseEntry?.sets.count ?? 0) { newValue in
+            withAnimation(setCardAnimation) {
+                showSetManagerCard = newValue > 0
+            }
+        }
     }
 
     // MARK: - Current selections
@@ -245,21 +261,20 @@ struct WorkoutSessionView: View {
                         )
                     }
                 }
+                .animation(.spring(response: 0.32, dampingFraction: 0.84), value: vm.todaysWorkouts)
+                .animation(.spring(response: 0.32, dampingFraction: 0.84), value: vm.currentWorkoutIndex)
 
                 Text("Tap a card to focus logging on that workout. Check it off once you've completed the sets.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
 
-                if let exercise = currentExerciseEntry, !exercise.sets.isEmpty {
-                    Button {
+                if showSetManagerCard,
+                   let workout = currentWorkoutDefinition,
+                   let exercise = currentExerciseEntry {
+                    ManageSetsQuickCard(workout: workout, exercise: exercise) {
                         activeSheet = .manageSets
-                    } label: {
-                        Text("View and edit sets")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
                     }
-                    .buttonStyle(AtlasButtonStyle())
+                    .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
                 }
             }
@@ -461,6 +476,7 @@ private struct AddSetInline: View {
     @State private var reps: Int = 8
     @State private var weight: Double = 100
     @State private var units: Units = .lbs
+    @State private var isConfirming = false
     var onAdd: (_ reps: Int, _ weight: Double, _ units: Units) -> Void
 
     var body: some View {
@@ -485,12 +501,27 @@ private struct AddSetInline: View {
     }
 
     private var logButton: some View {
-        Button { onAdd(reps, weight, units) } label: {
+        Button {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                isConfirming = true
+            }
+            onAdd(reps, weight, units)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    isConfirming = false
+                }
+            }
+        } label: {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(10)
-                .background(Circle().fill(AtlasTheme.gradient))
+                .background(
+                    Circle()
+                        .fill(AtlasTheme.gradient)
+                        .shadow(color: AtlasTheme.accentGreen.opacity(0.24), radius: 8, x: 0, y: 4)
+                )
+                .scaleEffect(isConfirming ? 0.9 : 1.0)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Log set")
@@ -559,15 +590,133 @@ private struct CompactDoubleAdjuster: View {
 private struct StepButton: View {
     let systemName: String
     let action: () -> Void
+    @State private var isPressed = false
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            withAnimation(.easeOut(duration: 0.15)) { isPressed = true }
+            action()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                withAnimation(.easeOut(duration: 0.2)) { isPressed = false }
+            }
+        } label: {
             Image(systemName: systemName)
-                .font(.system(size: 16, weight: .semibold)) // compact icon
-                .frame(width: 36, height: 36)               // compact button
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 36, height: 36)
                 .contentShape(Rectangle())
+                .scaleEffect(isPressed ? 0.88 : 1.0)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct ManageSetsQuickCard: View {
+    let workout: WorkoutDefinition
+    let exercise: ExerciseEntry
+    let onOpen: () -> Void
+
+    private var setSummary: String {
+        "\(exercise.sets.count) set\(exercise.sets.count == 1 ? "" : "s") logged"
+    }
+
+    private var bestSetDescription: String? {
+        guard let best = exercise.sets.max(by: { $0.weight < $1.weight }) else { return nil }
+        let repsText = "\(best.reps) reps"
+        let weightText: String
+        if best.weight.truncatingRemainder(dividingBy: 1) == 0 {
+            weightText = String(format: "%.0f %@", best.weight, best.units.rawValue)
+        } else {
+            weightText = String(format: "%.1f %@", best.weight, best.units.rawValue)
+        }
+        return "Top set: \(repsText) @ \(weightText)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(workout.name)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(AtlasTheme.textPrimary)
+                    Text(exercise.name)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(setSummary)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AtlasTheme.accentGreen)
+                    if let best = bestSetDescription {
+                        Text(best)
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+
+            if !exercise.sets.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
+                            SetSnapshotCapsule(index: index, set: set)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+                .animation(.easeInOut(duration: 0.25), value: exercise.sets)
+            }
+
+            Button(action: onOpen) {
+                Label("View / Edit Sets", systemImage: "slider.horizontal.3")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(AtlasButtonStyle())
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 24)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(setSummary) for \(exercise.name). Tap to view or edit sets.")
+    }
+}
+
+private struct SetSnapshotCapsule: View {
+    let index: Int
+    let set: SetEntry
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Set \(index + 1)")
+                .font(.caption2.weight(.semibold))
+                .foregroundColor(.secondary)
+            Text("\(set.reps) × \(weightText) \(set.units.rawValue)")
+                .font(.caption)
+                .foregroundColor(AtlasTheme.textPrimary)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AtlasTheme.gradient.opacity(0.12))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(AtlasTheme.gradient.opacity(0.6), lineWidth: 1)
+        )
+    }
+
+    private var weightText: String {
+        if set.weight.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", set.weight)
+        } else {
+            return String(format: "%.1f", set.weight)
+        }
     }
 }
 
