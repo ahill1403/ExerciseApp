@@ -23,6 +23,7 @@ struct StartWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var vm = StartWorkoutViewModel()
     @State private var showFinishAlert = false
+    var onLoggingStateChange: (Bool) -> Void = { _ in }
 
     // Inline edit state
     @State private var editExerciseID: UUID? = nil
@@ -35,6 +36,7 @@ struct StartWorkoutView: View {
     @State private var activeSheet: ActiveSheet?
 
     @State private var planSnapshot: WeeklyPlan = PlannerStore.shared.load()
+    @State private var expandedTemplateID: StartWorkoutViewModel.TemplateInfo.ID?
 
     private let templateColumns: [GridItem] = [
         GridItem(.flexible(), spacing: 14),
@@ -56,10 +58,17 @@ struct StartWorkoutView: View {
         .onAppear {
             vm.refreshPlanSuggestion()
             planSnapshot = PlannerStore.shared.load()
+            onLoggingStateChange(vm.isLogging)
         }
         // iOS 17: zero-parameter onChange; observe Equatable projection (Int?)
         .onChange(of: vm.planSuggestion?.day) {
             planSnapshot = PlannerStore.shared.load()
+        }
+        .onChange(of: vm.isLogging) { isLogging in
+            onLoggingStateChange(isLogging)
+            if isLogging {
+                expandedTemplateID = nil
+            }
         }
         // Keep toolbar items structurally present; gate content inside
         .toolbar {
@@ -87,6 +96,9 @@ struct StartWorkoutView: View {
         }
         .sheet(item: $activeSheet) { sheet in
             sheetContent(for: sheet)
+        }
+        .onDisappear {
+            onLoggingStateChange(false)
         }
     }
 
@@ -175,6 +187,7 @@ struct StartWorkoutView: View {
 
                 Button {
                     vm.start(template: firstTemplate)
+                    expandedTemplateID = nil
                 } label: {
                     Label(suggestion.isToday ? "Start Today's Plan" : "Start \(dayName)", systemImage: "play.fill")
                 }
@@ -191,6 +204,7 @@ struct StartWorkoutView: View {
                         ForEach(Array(suggestion.templates.dropFirst()), id: \.self) { name in
                             Button {
                                 vm.start(template: name)
+                                expandedTemplateID = nil
                             } label: {
                                 HStack {
                                     Image(systemName: "arrow.turn.down.right")
@@ -234,14 +248,23 @@ struct StartWorkoutView: View {
 
             LazyVGrid(columns: templateColumns, spacing: 14) {
                 ForEach(vm.templates) { template in
-                    Button {
-                        vm.start(template: template.name)
-                    } label: {
-                        TemplateCard(template: template)
-                    }
-                    .buttonStyle(.plain)
+                    let isExpanded = expandedTemplateID == template.id
+                    TemplateCard(
+                        template: template,
+                        isExpanded: isExpanded,
+                        onToggle: {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                expandedTemplateID = isExpanded ? nil : template.id
+                            }
+                        },
+                        onStart: {
+                            vm.start(template: template.name)
+                            expandedTemplateID = nil
+                        }
+                    )
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: expandedTemplateID)
         }
         .glassCard(cornerRadius: 22)
     }
@@ -258,6 +281,7 @@ struct StartWorkoutView: View {
 
             Button("Start Empty Session") {
                 vm.start(template: "Custom")
+                expandedTemplateID = nil
             }
             .buttonStyle(AtlasButtonStyle())
         }
@@ -281,7 +305,7 @@ struct StartWorkoutView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
-                .padding(.bottom, 160)
+                .padding(.bottom, 120)
             }
         }
         .safeAreaInset(edge: .bottom) {
@@ -443,12 +467,10 @@ private struct LoggingPanel: View {
     @Binding var activeSheet: ActiveSheet?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             if let workout = currentWorkoutDefinition,
                let exercise = currentExerciseEntry {
                 header(workout: workout)
-
-                Divider().opacity(0.15)
 
                 if exercise.sets.isEmpty {
                     Text("No sets yet. Use the controls below to log your first set.")
@@ -457,6 +479,8 @@ private struct LoggingPanel: View {
                 } else {
                     setsList(exercise: exercise)
                 }
+
+                Divider().opacity(0.08)
 
                 AddSetInline { reps, weight, units in
                     vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
@@ -481,55 +505,80 @@ private struct LoggingPanel: View {
             if !vm.todaysWorkouts.isEmpty {
                 Divider().opacity(0.08)
 
-                Button {
-                    activeSheet = .addExercise
-                } label: {
-                    Label("Add custom movement", systemImage: "plus")
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.vertical, 12)
-                        .frame(maxWidth: .infinity)
+                HStack(alignment: .center, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Need something else?")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundColor(AtlasTheme.textPrimary)
+
+                        Text("Log a move that's not in today's plan.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        activeSheet = .addExercise
+                    } label: {
+                        Image(systemName: "plus.circle.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundStyle(AtlasTheme.gradient)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Add custom movement")
+                    .accessibilityHint("Opens a sheet to log your own exercise")
                 }
-                .buttonStyle(AtlasButtonStyle())
             }
         }
-        .padding(24)
+        .padding(.vertical, 18)
+        .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 30, style: .continuous)
-                .fill(AtlasTheme.bgElevated.opacity(0.96))
+                .fill(AtlasTheme.bgElevated.opacity(0.94))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .stroke(AtlasTheme.border, lineWidth: 1)
         )
-        .shadow(color: Color.black.opacity(0.12), radius: 18, x: 0, y: 12)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 24)
+        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 8)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 18)
     }
 
     @ViewBuilder
     private func header(workout: WorkoutDefinition) -> some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Log this workout")
-                    .font(.headline)
-                    .foregroundColor(AtlasTheme.textPrimary)
-                Text(workout.name)
-                    .font(.title3.bold())
-                    .foregroundColor(AtlasTheme.textPrimary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Log this workout")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.secondary)
+
+                    Text(workout.name)
+                        .font(.title3.bold())
+                        .foregroundColor(AtlasTheme.textPrimary)
+                }
+
+                Spacer(minLength: 0)
+
+                if vm.completedWorkoutIDs.contains(workout.id) {
+                    Label("Completed", systemImage: "checkmark.circle.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(AtlasTheme.accentGreen)
+                }
             }
-            Spacer()
-            if vm.completedWorkoutIDs.contains(workout.id) {
-                Label("Completed", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(AtlasTheme.accentGreen)
-            }
+
+            Text(workout.area.displayName)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
         }
     }
 
     @ViewBuilder
     private func setsList(exercise: ExerciseEntry) -> some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             ForEach(Array(exercise.sets.enumerated()), id: \.offset) { index, set in
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
@@ -545,10 +594,10 @@ private struct LoggingPanel: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-                .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .padding(.vertical, 8)
+                .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .stroke(AtlasTheme.border, lineWidth: 1)
                 )
                 .contextMenu {
@@ -570,30 +619,62 @@ private struct LoggingPanel: View {
 
 private struct TemplateCard: View {
     let template: StartWorkoutViewModel.TemplateInfo
+    let isExpanded: Bool
+    let onToggle: () -> Void
+    let onStart: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(template.name)
-                .font(.headline)
-                .foregroundColor(.primary)
+        VStack(alignment: .leading, spacing: isExpanded ? 14 : 8) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(template.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
 
-            Text(template.focus)
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                    Text(template.duration)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
 
-            Text("\(template.duration) • \(template.equipment)")
-                .font(.caption)
-                .foregroundColor(.secondary)
+                Spacer(minLength: 0)
 
-            Text(template.summary)
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .lineLimit(3)
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onToggle)
+
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(template.focus)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+
+                    Label(template.equipment, systemImage: "dumbbell.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(template.summary)
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button {
+                        onStart()
+                    } label: {
+                        Label("Start workout", systemImage: "play.fill")
+                    }
+                    .buttonStyle(AtlasButtonStyle())
+                    .padding(.top, 2)
+                }
+                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
         .padding(16)
-        .frame(maxWidth: .infinity, minHeight: 150, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(AtlasTheme.cardFill)
