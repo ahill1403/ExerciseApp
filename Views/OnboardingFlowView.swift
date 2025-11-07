@@ -27,7 +27,7 @@ struct OnboardingFlowView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 0)
                             .id(vm.step)
-                            .contentTransition(
+                            .transition(
                                 .asymmetric(
                                     insertion: .opacity.combined(with: .move(edge: .trailing)),
                                     removal: .opacity.combined(with: .move(edge: .leading))
