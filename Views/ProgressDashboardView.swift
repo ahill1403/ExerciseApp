@@ -11,18 +11,13 @@ import Charts
 struct ProgressDashboardView: View {
     @StateObject private var vm = ProgressViewModel()
     @State private var selectedRange: ProgressRange = .weekly
+    @State private var selectedMetric: ProgressMetric = .workouts
 
     var body: some View {
         ZStack { NeonMotionBackground() }
             .overlay(
                 ScrollView {
                     VStack(spacing: 16) {
-                        // Tiles
-                        HStack(spacing: 16) {
-                            StatTile(title: "This Week", value: "\(vm.workoutsThisWeek)", detail: "Workouts")
-                            StatTile(title: "Streak", value: "\(vm.streakDays)", detail: "Days")
-                        }
-
                         if let last = vm.lastWorkout {
                             HStack {
                                 Image(systemName: "clock.arrow.circlepath")
@@ -35,30 +30,30 @@ struct ProgressDashboardView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 12) {
-                                Text("Progress Overview")
-                                    .font(.title3.bold())
-                                    .gradientForeground()
-                                Spacer()
-                                Picker("Range", selection: $selectedRange) {
-                                    ForEach(ProgressRange.allCases) { range in
-                                        Text(range.pickerTitle).tag(range)
+                            VStack(alignment: .leading, spacing: 16) {
+                                HStack(spacing: 12) {
+                                    Text("Progress Overview")
+                                        .font(.title3.bold())
+                                        .gradientForeground()
+                                    Spacer()
+                                    Picker("Range", selection: $selectedRange) {
+                                        ForEach(ProgressRange.allCases) { range in
+                                            Text(range.pickerTitle).tag(range)
+                                        }
                                     }
+                                    .pickerStyle(.segmented)
+                                    .labelsHidden()
+                                    .frame(maxWidth: 220)
+                                    .accessibilityLabel("Time range")
                                 }
-                                .pickerStyle(.segmented)
-                                .labelsHidden()
-                                .frame(maxWidth: 220)
-                                .accessibilityLabel("Time range")
-                            }
 
-                            VStack(spacing: 16) {
-                                ForEach(ProgressMetric.allCases) { metric in
-                                    ProgressMetricCard(
-                                        metric: metric,
-                                        data: vm.chartData(for: metric, range: selectedRange),
-                                        units: vm.preferredUnits
-                                    )
-                                }
+                                MetricPicker(selectedMetric: $selectedMetric)
+
+                                ProgressMetricCard(
+                                    metric: selectedMetric,
+                                    data: vm.chartData(for: selectedMetric, range: selectedRange),
+                                    units: vm.preferredUnits
+                                )
                             }
                         }
 
@@ -99,22 +94,6 @@ struct ProgressDashboardView: View {
 
 // MARK: - Components
 
-private struct StatTile: View {
-    let title: String
-    let value: String
-    let detail: String
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.subheadline).foregroundStyle(.secondary)
-            Text(value).font(.title).bold().gradientForeground()
-            Text(detail).font(.footnote).foregroundStyle(.secondary)
-        }
-        .padding(16)
-        .glassCard(cornerRadius: 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
 private struct WorkoutRow: View {
     let session: WorkoutSession
     var body: some View {
@@ -141,6 +120,39 @@ private struct WorkoutRow: View {
         let mins = Int(t / 60)
         let secs = Int(t.truncatingRemainder(dividingBy: 60))
         return String(format: "%dm %02ds", mins, secs)
+    }
+}
+
+private struct MetricPicker: View {
+    @Binding var selectedMetric: ProgressMetric
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ForEach(ProgressMetric.allCases) { metric in
+                Button {
+                    selectedMetric = metric
+                } label: {
+                    Image(systemName: metric.iconName)
+                        .font(.title3.weight(.semibold))
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(selectedMetric == metric ? Color.white : AtlasTheme.textPrimary.opacity(0.7))
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(selectedMetric == metric ? AtlasTheme.gradient : AtlasTheme.cardFill)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(selectedMetric == metric ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: 1.2)
+                        )
+                        .shadow(color: selectedMetric == metric ? AtlasTheme.accentGreen.opacity(0.25) : .clear, radius: 10, x: 0, y: 6)
+                        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(metric.title)
+                .accessibilityAddTraits(selectedMetric == metric ? .isSelected : [])
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
