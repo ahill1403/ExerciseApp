@@ -14,6 +14,7 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published var currentWorkoutIndex: Int = 0
     @Published var completedWorkoutIDs: Set<String> = []
     @Published var lastCompletionMessage: String?
+    @Published var completedSetIDs: Set<UUID> = []
 
     // Sheets
     @Published var showAddExercise = false
@@ -121,6 +122,7 @@ final class StartWorkoutViewModel: ObservableObject {
         exercises = []
         startTime = Date()
         completedWorkoutIDs = []
+        completedSetIDs = []
         currentWorkoutIndex = 0
 
         let planWorkouts = todaysPlanWorkouts()
@@ -155,10 +157,15 @@ final class StartWorkoutViewModel: ObservableObject {
 
     func addSet(to exerciseID: UUID, reps: Int, weight: Double, units: Units) {
         guard let idx = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
-        exercises[idx].sets.append(SetEntry(reps: reps, weight: weight, units: units))
+        let entry = SetEntry(reps: reps, weight: weight, units: units)
+        exercises[idx].sets.append(entry)
+        completedSetIDs.remove(entry.id)
     }
-    
+
     func removeExercise(_ exerciseID: UUID) {
+        if let entry = exercises.first(where: { $0.id == exerciseID }) {
+            completedSetIDs.subtract(entry.sets.map(\.id))
+        }
         exercises.removeAll { $0.id == exerciseID }
     }
 
@@ -189,6 +196,7 @@ final class StartWorkoutViewModel: ObservableObject {
         let last = WorkoutStore.shared.load().last { $0.template == template }
         guard let l = last else { return }
         exercises = l.exercises
+        completedSetIDs = []
         bindExercisesToWorkouts()
     }
 
@@ -234,6 +242,7 @@ final class StartWorkoutViewModel: ObservableObject {
         completedWorkoutIDs = []
         currentWorkoutIndex = 0
         workoutExerciseLookup = [:]
+        completedSetIDs = []
         refreshPlanSuggestion()
         if clearCompletionMessage {
             lastCompletionMessage = nil
@@ -276,6 +285,24 @@ final class StartWorkoutViewModel: ObservableObject {
 
     func isPlannedExercise(_ id: UUID) -> Bool {
         workoutExerciseLookup.values.contains(id)
+    }
+
+    func toggleSetCompletion(for setID: UUID) {
+        if completedSetIDs.contains(setID) {
+            completedSetIDs.remove(setID)
+        } else {
+            completedSetIDs.insert(setID)
+        }
+    }
+
+    func isSetCompleted(_ setID: UUID) -> Bool {
+        completedSetIDs.contains(setID)
+    }
+
+    func removeSet(from exerciseID: UUID, setID: UUID) {
+        guard let exerciseIndex = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+        exercises[exerciseIndex].sets.removeAll { $0.id == setID }
+        completedSetIDs.remove(setID)
     }
 
     // MARK: - Private
