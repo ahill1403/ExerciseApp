@@ -58,4 +58,8 @@ struct WorkoutSession: Codable, Identifiable, Hashable {
     var totalVolume: Double {
         exercises.flatMap { $0.sets }.reduce(0) { $0 + ($1.weight * Double($1.reps)) }
     }
+
+    var totalReps: Int {
+        exercises.flatMap { $0.sets }.reduce(0) { $0 + $1.reps }
+    }
 }
