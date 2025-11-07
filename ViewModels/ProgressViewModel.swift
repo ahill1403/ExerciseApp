@@ -74,6 +74,15 @@ enum ProgressMetric: CaseIterable, Identifiable {
         }
     }
 
+    var iconName: String {
+        switch self {
+        case .workouts: return "figure.run"
+        case .weight: return "dumbbell"
+        case .reps: return "repeat"
+        case .duration: return "clock"
+        }
+    }
+
     func yAxisLabel(units: Units) -> String {
         switch self {
         case .workouts: return "Workouts"
