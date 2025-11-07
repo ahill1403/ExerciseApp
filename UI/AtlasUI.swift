@@ -249,7 +249,7 @@ extension View {
         self
             .toolbarBackground(AtlasTheme.bgElevated.opacity(0.92), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.automatic, for: .navigationBar)
+            .toolbarColorScheme(nil, for: .navigationBar)
             .tint(AtlasTheme.accentGreen)
     }
 }

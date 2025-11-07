@@ -1,3 +1,10 @@
+//
+//  SettingsDetailViews.swift
+//  REPS
+//
+//  Created by Aaron Hill on 11/7/25.
+//
+
 import SwiftUI
 import UserNotifications
 #if canImport(UIKit)
