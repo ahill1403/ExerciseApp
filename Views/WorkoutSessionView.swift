@@ -77,6 +77,7 @@ struct WorkoutSessionView: View {
                 }
             }
         }
+        .atlasNavigationBarStyle()
         .alert("Finish Workout?", isPresented: $showFinishAlert) {
             Button("Save") { vm.finish() }
             Button("Keep Logging", role: .cancel) { }

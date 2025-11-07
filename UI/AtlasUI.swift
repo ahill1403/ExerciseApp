@@ -224,6 +224,36 @@ struct SectionHeader: View {
     }
 }
 
+struct AtlasNavigationTitle: View {
+    var title: String
+    var subtitle: String?
+
+    var body: some View {
+        VStack(spacing: 2) {
+            Text(title)
+                .font(.headline.weight(.semibold))
+                .thematicForeground()
+            if let subtitle {
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .multilineTextAlignment(.center)
+        .padding(.vertical, 4)
+    }
+}
+
+extension View {
+    func atlasNavigationBarStyle() -> some View {
+        self
+            .toolbarBackground(AtlasTheme.bgElevated.opacity(0.92), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.automatic, for: .navigationBar)
+            .tint(AtlasTheme.accentGreen)
+    }
+}
+
 // MARK: - Layout Utilities (shared)
 
 public struct Wrap<Content: View>: View {

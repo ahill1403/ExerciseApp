@@ -245,16 +245,147 @@ struct SettingsHubView: View {
     var body: some View {
         ZStack {
             NeonMotionBackground()
-            VStack(spacing: 16) {
-                SectionHeader(title: "Settings", subtitle: "Personalize REPS")
-                NavigationLink("Edit Profile") { EditProfileView() }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 28) {
+                    SettingsSection(title: "Profile") {
+                        NavigationLink {
+                            EditProfileView()
+                        } label: {
+                            SettingsRow(
+                                icon: "person.crop.circle",
+                                iconTint: AtlasTheme.accentGreen,
+                                title: "Profile",
+                                subtitle: "Goals, schedule, and personal details"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    SettingsSection(title: "Workout") {
+                        NavigationLink { UnitsSettingsView() } label: {
+                            SettingsRow(
+                                icon: "scalemass",
+                                iconTint: Color.orange,
+                                title: "Units",
+                                subtitle: "Choose pounds or kilograms"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink { NotificationSettingsView() } label: {
+                            SettingsRow(
+                                icon: "bell.badge",
+                                iconTint: AtlasTheme.accentGreen,
+                                title: "Notifications",
+                                subtitle: "Workout reminders and alerts"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        NavigationLink { IntegrationsSettingsView() } label: {
+                            SettingsRow(
+                                icon: "heart.fill",
+                                iconTint: Color.red,
+                                title: "Apple Health",
+                                subtitle: "Connect workouts to Health"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    SettingsSection(title: "Support") {
+                        NavigationLink { SupportSettingsView() } label: {
+                            SettingsRow(
+                                icon: "questionmark.circle",
+                                iconTint: Color.blue,
+                                title: "Help & Feedback",
+                                subtitle: "Tips, FAQs, and contact options"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(20)
+                .safeAreaPadding(.bottom, 96)
             }
-            .padding(20)
         }
-        .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                AtlasNavigationTitle(title: "Settings", subtitle: "Personalize REPS")
+            }
+        }
+        .atlasNavigationBarStyle()
+    }
+}
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder var content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .tracking(1)
+
+            VStack(spacing: 12) {
+                content
+            }
+        }
+    }
+}
+
+private struct SettingsRow: View {
+    var icon: String
+    var iconTint: Color
+    var title: String
+    var subtitle: String?
+
+    var body: some View {
+        HStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(iconTint.opacity(0.18))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(iconTint)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(AtlasTheme.textPrimary)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AtlasTheme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .strokeBorder(AtlasTheme.border, lineWidth: 1)
+        )
     }
 }
 

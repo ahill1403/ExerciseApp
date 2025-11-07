@@ -34,8 +34,16 @@ struct StartWorkoutView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .navigationTitle("Start Workout")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                AtlasNavigationTitle(
+                    title: vm.isLogging ? "Workout Session" : "Start Workout",
+                    subtitle: vm.isLogging ? "Log sets and reps" : "Choose the next session"
+                )
+            }
+        }
+        .atlasNavigationBarStyle()
         .onAppear {
             vm.refreshPlanSuggestion()
             planSnapshot = PlannerStore.shared.load()
