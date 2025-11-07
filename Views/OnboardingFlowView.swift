@@ -8,7 +8,7 @@ struct OnboardingFlowView: View {
         NavigationStack {
             ZStack {
                 NeonMotionBackground()
-                
+
                 VStack(spacing: 16) {
                     // Progress: hide on .done to avoid out-of-bounds warning
                     if vm.step != .done {
@@ -22,60 +22,20 @@ struct OnboardingFlowView: View {
                     
                     
                     ScrollView {
-                        Group {
-                            switch vm.step {
-                            case .experience:
-                                ExperienceStep(experience: $vm.data.experience)
-                            case .goal:
-                                GoalStep(goal: $vm.data.goal)
-                            case .frequency:
-                                FrequencyStep(
-                                    days: $vm.data.daysPerWeek,
-                                    minutesPerDay: $vm.data.minutesPerDay,
-                                    showMinutes: vm.data.experience != .beginner    // ← only non-beginner sees minutes
+                        stepContent(for: vm.step)
+                            .glassCard(cornerRadius: 24)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 0)
+                            .id(vm.step)
+                            .contentTransition(
+                                .asymmetric(
+                                    insertion: .opacity.combined(with: .move(edge: .trailing)),
+                                    removal: .opacity.combined(with: .move(edge: .leading))
                                 )
-                            case .reminder: ReminderStep(wants: $vm.data.wantsNotifications, time: $vm.data.reminderTime)
-                            case .physique:
-                                PhysiqueStep(
-                                    gender: $vm.data.gender,
-                                    ageRange: $vm.data.ageRange,
-                                    heightInCm: $vm.data.heightInCm,
-                                    weight: $vm.data.weight,
-                                    units: $vm.data.units
-                                )
-                            case .plan:
-                                PlanChoiceStep(
-                                    plan: vm.recommendedPlan ?? WeeklyPlan(),
-                                    decision: $vm.planDecision
-                                )
-                            case .done:
-                                VStack(spacing: 16) {
-                                    Text("You’re set!").font(.title.bold()).gradientForeground()
-                                    if vm.data.experience == .beginner || vm.planDecision == .recommended {
-                                        Text("Your weekly plan is ready to go. Check it anytime under Planner.")
-                                            .foregroundStyle(.secondary)
-                                    } else {
-                                        Text("Jump into the Weekly Planner to craft your own routine.")
-                                            .foregroundStyle(.secondary)
-                                    }
-
-                                    Button("Continue") { dismiss() }
-                                        .buttonStyle(AtlasButtonStyle())
-                                        .padding(.top, 4)
-                                }
-                                .padding(16)
-                                .autoAdvance(
-                                    after: AppConfig.Onboarding.completionHoldSeconds,
-                                    perform: { dismiss() }
-                                )
-                                .padding(16)
-                            }
-                        }
-                        .glassCard(cornerRadius: 24)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 0)
+                            )
                     }
                     .scrollIndicators(.hidden)
+                    .animation(.spring(response: 0.6, dampingFraction: 0.82), value: vm.step)
                     
                     VStack(spacing: 12) {
                         let title = vm.step == .plan ? "Finish" : "Continue"
@@ -115,6 +75,66 @@ struct OnboardingFlowView: View {
             .navigationTitle("Onboarding")
             .navigationBarTitleDisplayMode(.inline)
             // iOS 17+ onChange variant: two-parameter closure
+        }
+        .onAppear {
+            NotificationCenter.default.post(name: .atlasTabBarVisibilityShouldHide, object: true)
+        }
+        .onDisappear {
+            NotificationCenter.default.post(name: .atlasTabBarVisibilityShouldHide, object: false)
+        }
+    }
+}
+
+private extension OnboardingFlowView {
+    @ViewBuilder
+    func stepContent(for step: OnboardingViewModel.Step) -> some View {
+        switch step {
+        case .experience:
+            ExperienceStep(experience: $vm.data.experience)
+        case .goal:
+            GoalStep(goal: $vm.data.goal)
+        case .frequency:
+            FrequencyStep(
+                days: $vm.data.daysPerWeek,
+                minutesPerDay: $vm.data.minutesPerDay,
+                showMinutes: vm.data.experience != .beginner
+            )
+        case .reminder:
+            ReminderStep(wants: $vm.data.wantsNotifications, time: $vm.data.reminderTime)
+        case .physique:
+            PhysiqueStep(
+                gender: $vm.data.gender,
+                ageRange: $vm.data.ageRange,
+                heightInCm: $vm.data.heightInCm,
+                weight: $vm.data.weight,
+                units: $vm.data.units
+            )
+        case .plan:
+            PlanChoiceStep(
+                plan: vm.recommendedPlan ?? WeeklyPlan(),
+                decision: $vm.planDecision
+            )
+        case .done:
+            VStack(spacing: 16) {
+                Text("You’re set!").font(.title.bold()).gradientForeground()
+                if vm.data.experience == .beginner || vm.planDecision == .recommended {
+                    Text("Your weekly plan is ready to go. Check it anytime under Planner.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("Jump into the Weekly Planner to craft your own routine.")
+                        .foregroundStyle(.secondary)
+                }
+
+                Button("Continue") { dismiss() }
+                    .buttonStyle(AtlasButtonStyle())
+                    .padding(.top, 4)
+            }
+            .padding(16)
+            .autoAdvance(
+                after: AppConfig.Onboarding.completionHoldSeconds,
+                perform: { dismiss() }
+            )
+            .padding(16)
         }
     }
 }
@@ -357,9 +377,20 @@ private struct SelectRow: View {
             }
             .padding(14)
             .frame(maxWidth: .infinity)
-            .background(AtlasTheme.gradient.opacity(0.18), in: RoundedRectangle(cornerRadius: 14))
+            .background(
+                AtlasTheme.gradient
+                    .opacity(isSelected ? 0.26 : 0.18),
+                in: RoundedRectangle(cornerRadius: 14)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.white.opacity(isSelected ? 0.22 : 0.08))
+            )
         }
         .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.03 : 1)
+        .shadow(color: AtlasTheme.accentGreen.opacity(isSelected ? 0.25 : 0), radius: isSelected ? 16 : 0, y: isSelected ? 8 : 0)
+        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isSelected)
     }
 }
 
@@ -420,32 +451,44 @@ private struct PlanDecisionRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .top, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
                 Image(systemName: icon)
-                    .font(.title3)
-                    .foregroundStyle(isSelected ? Color.white : .secondary)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(isSelected ? AtlasTheme.accentGreen : .secondary)
+                    .frame(width: 28)
+
                 VStack(alignment: .leading, spacing: 6) {
                     Text(title)
                         .font(.headline)
                         .foregroundStyle(.primary)
                     Text(message)
-                        .font(.footnote)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+
                 Spacer()
+
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(AtlasTheme.neon)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(AtlasTheme.accentGreen, .white)
                 }
             }
-            .padding(14)
-            .frame(maxWidth: .infinity)
+            .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(AtlasTheme.gradient.opacity(isSelected ? 0.28 : 0.16))
+                AtlasTheme.gradient
+                    .opacity(isSelected ? 0.28 : 0.16),
+                in: RoundedRectangle(cornerRadius: 18)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .strokeBorder(Color.white.opacity(isSelected ? 0.24 : 0.1))
             )
         }
         .buttonStyle(.plain)
+        .scaleEffect(isSelected ? 1.02 : 1)
+        .shadow(color: AtlasTheme.accentGreen.opacity(isSelected ? 0.22 : 0), radius: isSelected ? 18 : 0, y: isSelected ? 10 : 0)
+        .animation(.spring(response: 0.5, dampingFraction: 0.82), value: isSelected)
     }
 }
 

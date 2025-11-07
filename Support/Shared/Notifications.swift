@@ -9,4 +9,5 @@ import Foundation
 
 extension Notification.Name {
     static let atlasLoggingStateChanged = Notification.Name("atlasLoggingStateChanged")
+    static let atlasTabBarVisibilityShouldHide = Notification.Name("atlasTabBarVisibilityShouldHide")
 }
