@@ -38,6 +38,7 @@ struct AtlasTabRoot: View {
     @State private var selected: AtlasTab = .home
     @State private var hideTabBar = false
     @State private var isWorkoutLogging = false
+    @State private var isTabBarExternallyHidden = false
 
     var body: some View {
         ZStack {
@@ -64,24 +65,27 @@ struct AtlasTabRoot: View {
             }
         }
         .highPriorityGesture(tabSwipeGesture)
-        .onAppear {
-            hideTabBar = (selected == .workout) && isWorkoutLogging
-        }
+        .onAppear { hideTabBar = shouldHideTabBar(for: selected) }
         .onChange(of: selected) { newValue in
             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                 if newValue != .workout {
                     isWorkoutLogging = false
-                    hideTabBar = false
-                } else {
-                    hideTabBar = isWorkoutLogging
                 }
+                hideTabBar = shouldHideTabBar(for: newValue)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .atlasLoggingStateChanged)) { note in
             guard let isLogging = note.object as? Bool else { return }
             isWorkoutLogging = isLogging
             withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-                hideTabBar = (selected == .workout) && isLogging
+                hideTabBar = shouldHideTabBar(for: selected)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .atlasTabBarVisibilityShouldHide)) { note in
+            guard let shouldHide = note.object as? Bool else { return }
+            isTabBarExternallyHidden = shouldHide
+            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+                hideTabBar = shouldHideTabBar(for: selected)
             }
         }
 
@@ -111,6 +115,11 @@ private extension AtlasTabRoot {
         withAnimation(.easeInOut(duration: 0.2)) {
             selected = AtlasTab.allCases[newIndex]
         }
+    }
+
+    func shouldHideTabBar(for tab: AtlasTab) -> Bool {
+        if isTabBarExternallyHidden { return true }
+        return tab == .workout && isWorkoutLogging
     }
 }
 
@@ -236,6 +245,9 @@ private struct CenterHomeButton: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
+        .scaleEffect(isSelected ? 1.02 : 0.96)
+        .shadow(color: AtlasTheme.accentGreen.opacity(isSelected ? 0.32 : 0.18), radius: isSelected ? 18 : 12, y: isSelected ? 12 : 6)
+        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isSelected)
     }
 }
 
@@ -347,6 +359,7 @@ private struct SettingsRow: View {
     var iconTint: Color
     var title: String
     var subtitle: String?
+    @State private var isVisible = false
 
     var body: some View {
         HStack(spacing: 16) {
@@ -386,6 +399,11 @@ private struct SettingsRow: View {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(AtlasTheme.border, lineWidth: 1)
         )
+        .shadow(color: iconTint.opacity(0.12), radius: 12, y: 6)
+        .opacity(isVisible ? 1 : 0)
+        .offset(y: isVisible ? 0 : 14)
+        .animation(.spring(response: 0.6, dampingFraction: 0.85), value: isVisible)
+        .onAppear { isVisible = true }
     }
 }
 

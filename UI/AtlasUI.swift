@@ -247,7 +247,17 @@ struct AtlasNavigationTitle: View {
 extension View {
     func atlasNavigationBarStyle() -> some View {
         self
-            .toolbarBackground(AtlasTheme.bgElevated.opacity(0.92), for: .navigationBar)
+            .toolbarBackground(
+                LinearGradient(
+                    colors: [
+                        AtlasTheme.bgElevated.opacity(0.68),
+                        AtlasTheme.bgElevated.opacity(0.85)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                ),
+                for: .navigationBar
+            )
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(nil, for: .navigationBar)
             .tint(AtlasTheme.accentGreen)
