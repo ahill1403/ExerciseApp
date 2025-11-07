@@ -24,8 +24,10 @@
 		9C85FF532E7350090085CEC1 /* ProgressViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF522E734FF90085CEC1 /* ProgressViewModel.swift */; };
 		9C85FF552E7350330085CEC1 /* StartWorkoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */; };
 		9C85FF572E73504D0085CEC1 /* ProgressDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */; };
-		9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */; };
-		CCC5A44AC889468EB63BB4C6D2738959 /* WeekPlanGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */; };
+9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */; };
+CCC5A44AC889468EB63BB4C6D2738959 /* WeekPlanGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B76B2EBA2A4805B54FE04AB364CB17 /* WeekPlanGrid.swift */; };
+9CF0A0A12F1B0A2300ABCDEF /* UserProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF0A0A02F1B0A2300ABCDEF /* UserProfileStore.swift */; };
+9CF0A0B12F1B0A2300ABCDEF /* SettingsDetailViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CF0A0B02F1B0A2300ABCDEF /* SettingsDetailViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -66,8 +68,10 @@
 		9C85FF502E734FDE0085CEC1 /* StartWorkoutViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartWorkoutViewModel.swift; sourceTree = "<group>"; };
 		9C85FF522E734FF90085CEC1 /* ProgressViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressViewModel.swift; sourceTree = "<group>"; };
 		9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartWorkoutView.swift; sourceTree = "<group>"; };
-		9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDashboardView.swift; sourceTree = "<group>"; };
-		9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingExperienceMatrixView.swift; sourceTree = "<group>"; };
+9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDashboardView.swift; sourceTree = "<group>"; };
+9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingExperienceMatrixView.swift; sourceTree = "<group>"; };
+9CF0A0A02F1B0A2300ABCDEF /* UserProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileStore.swift; sourceTree = "<group>"; };
+9CF0A0B02F1B0A2300ABCDEF /* SettingsDetailViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsDetailViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -91,16 +95,21 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
-		9C85FF392E7340960085CEC1 /* UI */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = UI;
-			sourceTree = "<group>";
-		};
-		9CD8C3AC2EB03F6D00F53CFF /* Support */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Support;
-			sourceTree = "<group>";
-		};
+9C85FF392E7340960085CEC1 /* UI */ = {
+isa = PBXFileSystemSynchronizedRootGroup;
+path = UI;
+sourceTree = "<group>";
+};
+9CD8C3AC2EB03F6D00F53CFF /* Support */ = {
+isa = PBXFileSystemSynchronizedRootGroup;
+path = Support;
+sourceTree = "<group>";
+};
+9CF0A0C02F1B0A2300ABCDEF /* Settings */ = {
+isa = PBXFileSystemSynchronizedRootGroup;
+path = "Views/Settings";
+sourceTree = "<group>";
+};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,12 +184,13 @@
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		9C35F71B2E70B3FE006EC7E2 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				9C7A69962E8F060F00BA5C4C /* Shell */,
-				9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */,
-				9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */,
+9C35F71B2E70B3FE006EC7E2 /* Views */ = {
+isa = PBXGroup;
+children = (
+9C7A69962E8F060F00BA5C4C /* Shell */,
+9CF0A0C02F1B0A2300ABCDEF /* Settings */,
+9CC5327A2E834C0B0018BFED /* OnboardingExperienceMatrixView.swift */,
+9C85FF562E7350440085CEC1 /* ProgressDashboardView.swift */,
 				9C85FF542E73502A0085CEC1 /* StartWorkoutView.swift */,
 				9C85FF342E7340580085CEC1 /* LoginView.swift */,
 				9C85FF322E73404B0085CEC1 /* OnboardingFlowView.swift */,
@@ -217,12 +227,13 @@
 			);
 			dependencies = (
 			);
-			fileSystemSynchronizedGroups = (
-				9C35F6EE2E70B349006EC7E2 /* REPS */,
-				9C85FF2D2E733FFD0085CEC1 /* Services */,
-				9C85FF392E7340960085CEC1 /* UI */,
-				9CD8C3AC2EB03F6D00F53CFF /* Support */,
-			);
+fileSystemSynchronizedGroups = (
+9C35F6EE2E70B349006EC7E2 /* REPS */,
+9C85FF2D2E733FFD0085CEC1 /* Services */,
+9C85FF392E7340960085CEC1 /* UI */,
+9CD8C3AC2EB03F6D00F53CFF /* Support */,
+9CF0A0C02F1B0A2300ABCDEF /* Settings */,
+);
 			name = REPS;
 			packageProductDependencies = (
 			);
@@ -348,27 +359,29 @@
 		9C35F6E82E70B349006EC7E2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
-				9C85FF4C2E734FAD0085CEC1 /* WorkoutModels.swift in Sources */,
-				9C85FF552E7350330085CEC1 /* StartWorkoutView.swift in Sources */,
-				9C85FF472E73499E0085CEC1 /* EditProfileViewModel.swift in Sources */,
-				9C85FF312E7340480085CEC1 /* WelcomeView.swift in Sources */,
-				9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */,
-				9C85FF332E7340520085CEC1 /* OnboardingFlowView.swift in Sources */,
-				9C3C9B442EB17DB800BFA20D /* WorkoutSessionView.swift in Sources */,
-				9C85FF442E73458F0085CEC1 /* Models.swift in Sources */,
-				9C85FF3B2E7340C80085CEC1 /* EditProfileView.swift in Sources */,
-				9C85FF512E734FE50085CEC1 /* StartWorkoutViewModel.swift in Sources */,
-				9C85FF532E7350090085CEC1 /* ProgressViewModel.swift in Sources */,
-				9C3BE2CF2E75F15300A00C25 /* WeeklyPlan.swift in Sources */,
-				9C7A69982E8F062200BA5C4C /* AtlasTabRoot.swift in Sources */,
-				9C85FF452E73459A0085CEC1 /* OnboardingViewModel.swift in Sources */,
-				9C85FF572E73504D0085CEC1 /* ProgressDashboardView.swift in Sources */,
-				9C35F6F22E70B349006EC7E2 /* ContentView.swift in Sources */,
-				9C85FF352E73405B0085CEC1 /* LoginView.swift in Sources */,
-				9C35F71F2E70B459006EC7E2 /* WeeklyPlannerView.swift in Sources */,
-				CCC5A44AC889468EB63BB4C6D2738959 /* WeekPlanGrid.swift in Sources */,
-			);
+files = (
+9C85FF4C2E734FAD0085CEC1 /* WorkoutModels.swift in Sources */,
+9C85FF552E7350330085CEC1 /* StartWorkoutView.swift in Sources */,
+9C85FF472E73499E0085CEC1 /* EditProfileViewModel.swift in Sources */,
+9C85FF312E7340480085CEC1 /* WelcomeView.swift in Sources */,
+9CC5327B2E834C180018BFED /* OnboardingExperienceMatrixView.swift in Sources */,
+9C85FF332E7340520085CEC1 /* OnboardingFlowView.swift in Sources */,
+9C3C9B442EB17DB800BFA20D /* WorkoutSessionView.swift in Sources */,
+9C85FF442E73458F0085CEC1 /* Models.swift in Sources */,
+9C85FF3B2E7340C80085CEC1 /* EditProfileView.swift in Sources */,
+9C85FF512E734FE50085CEC1 /* StartWorkoutViewModel.swift in Sources */,
+9C85FF532E7350090085CEC1 /* ProgressViewModel.swift in Sources */,
+9C3BE2CF2E75F15300A00C25 /* WeeklyPlan.swift in Sources */,
+9C7A69982E8F062200BA5C4C /* AtlasTabRoot.swift in Sources */,
+9C85FF452E73459A0085CEC1 /* OnboardingViewModel.swift in Sources */,
+9C85FF572E73504D0085CEC1 /* ProgressDashboardView.swift in Sources */,
+9C35F6F22E70B349006EC7E2 /* ContentView.swift in Sources */,
+9C85FF352E73405B0085CEC1 /* LoginView.swift in Sources */,
+9C35F71F2E70B459006EC7E2 /* WeeklyPlannerView.swift in Sources */,
+CCC5A44AC889468EB63BB4C6D2738959 /* WeekPlanGrid.swift in Sources */,
+9CF0A0A12F1B0A2300ABCDEF /* UserProfileStore.swift in Sources */,
+9CF0A0B12F1B0A2300ABCDEF /* SettingsDetailViews.swift in Sources */,
+);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		9C35F6F82E70B34A006EC7E2 /* Sources */ = {

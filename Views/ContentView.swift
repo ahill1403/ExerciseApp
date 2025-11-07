@@ -9,7 +9,6 @@ struct ContentView: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @AppStorage("weeklyGoal") private var weeklyGoal: Int = 5
 
-    @State private var showOnboardingSheet = false
     @StateObject private var progressVM = ProgressViewModel()
 
     private let quickTemplates = ["Full Body", "Upper Body", "Lower Body", "Push", "Pull", "Legs", "Core", "Custom"]
@@ -39,8 +38,8 @@ struct ContentView: View {
                         )
 
                         if !hasCompletedOnboarding {
-                            Button {
-                                showOnboardingSheet = true
+                            NavigationLink {
+                                OnboardingFlowView()
                             } label: {
                                 AtlasCard(
                                     title: "Finish Setup",
@@ -84,7 +83,6 @@ struct ContentView: View {
                     .safeAreaPadding(.bottom, 120)
                 }
             }
-            .navigationTitle("REPS")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 // Profile button (top-left) → Edit Profile
@@ -93,6 +91,10 @@ struct ContentView: View {
                         Image(systemName: "person.crop.circle")
                             .imageScale(.large)
                     }
+                }
+
+                ToolbarItem(placement: .principal) {
+                    AtlasNavigationTitle(title: "REPS", subtitle: "Today's snapshot")
                 }
 
                 #if DEBUG
@@ -104,10 +106,8 @@ struct ContentView: View {
                 }
                 #endif
             }
+            .atlasNavigationBarStyle()
             .onAppear { progressVM.refresh() }
-        }
-        .sheet(isPresented: $showOnboardingSheet) {
-            OnboardingFlowView()
         }
     }
 

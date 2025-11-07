@@ -35,8 +35,7 @@ final class EditProfileViewModel: ObservableObject {
 
     // MARK: - Load / Save
     func loadFromStorage() {
-        if let data = UserDefaults.standard.data(forKey: "userProfile"),
-           let profile = try? JSONDecoder().decode(UserProfile.self, from: data) {
+        if let profile = UserProfileStore.load() {
             goal = profile.goal
             experience = profile.experience
             experienceByArea = FitnessArea.defaultExperienceLevels.merging(profile.experienceByArea) { _, new in new }
@@ -59,8 +58,10 @@ final class EditProfileViewModel: ObservableObject {
     func save() {
         let normalizedExperience = FitnessArea.defaultExperienceLevels.merging(experienceByArea) { _, new in new }
 
+        let existingCreatedAt = UserProfileStore.load()?.createdAt ?? .now
+
         let profile = UserProfile(
-            createdAt: .now,
+            createdAt: existingCreatedAt,
             goal: goal,
             experience: experience,
             experienceByArea: normalizedExperience,
@@ -74,9 +75,7 @@ final class EditProfileViewModel: ObservableObject {
             units: units
         )
 
-        if let encoded = try? JSONEncoder().encode(profile) {
-            UserDefaults.standard.set(encoded, forKey: "userProfile")
-        }
+        UserProfileStore.save(profile)
 
         if wantsNotifications {
             ensureNotificationPermissionThenSchedule()

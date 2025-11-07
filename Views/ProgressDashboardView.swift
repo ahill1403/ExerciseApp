@@ -59,8 +59,13 @@ struct ProgressDashboardView: View {
                     .safeAreaPadding(.bottom, 160)
                 }
             )
-            .navigationTitle("Progress")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    AtlasNavigationTitle(title: "Progress", subtitle: "Track your streaks")
+                }
+            }
+            .atlasNavigationBarStyle()
             .onAppear { vm.refresh() }
     }
 }

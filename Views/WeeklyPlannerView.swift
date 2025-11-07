@@ -41,7 +41,13 @@ struct WeeklyPlannerView: View {
                         .safeAreaPadding(.bottom, 160)
                     }
                 )
-                .navigationTitle("Plan")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        AtlasNavigationTitle(title: "Plan", subtitle: "Shape your week")
+                    }
+                }
+                .atlasNavigationBarStyle()
         }
         .sheet(item: $editorSelection) { selection in
             DayPlanEditor(day: selection.day, plan: $plan, profile: storedProfile)
@@ -65,11 +71,7 @@ struct WeeklyPlannerView: View {
     }
 
     static private func loadProfile() -> UserProfile? {
-        guard
-            let data = UserDefaults.standard.data(forKey: "userProfile"),
-            let profile = try? JSONDecoder().decode(UserProfile.self, from: data)
-        else { return nil }
-        return profile
+        UserProfileStore.load()
     }
 
     // MARK: - Scheduling
@@ -82,8 +84,7 @@ struct WeeklyPlannerView: View {
         }
 
         guard
-            let data = UserDefaults.standard.data(forKey: "userProfile"),
-            let profile = try? JSONDecoder().decode(UserProfile.self, from: data),
+            let profile = UserProfileStore.load(),
             let time = profile.reminderTime
         else {
             alertMessage = "Enable reminders and pick a time in Edit Profile first."
@@ -114,10 +115,7 @@ struct WeeklyPlannerView: View {
     }
 
     func applyRecommendedPlan() {
-        guard
-            let data = UserDefaults.standard.data(forKey: "userProfile"),
-            let profile = try? JSONDecoder().decode(UserProfile.self, from: data)
-        else {
+        guard let profile = UserProfileStore.load() else {
             alertMessage = "Complete onboarding to generate a recommended plan."
             return
         }

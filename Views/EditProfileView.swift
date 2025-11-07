@@ -136,16 +136,21 @@ struct EditProfileView: View {
                 .scrollContentBackground(.hidden)
                 .background(.clear)
             }
-            .navigationTitle("Edit Profile")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    AtlasNavigationTitle(title: "Edit Profile", subtitle: "Keep your plan in sync")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
                         vm.save()
                         UserDefaults.standard.set(vm.daysPerWeek, forKey: "weeklyGoal")
                         dismiss()
                     }
+                    .font(.headline)
                 }
             }
+            .atlasNavigationBarStyle()
             .alert("Heads up",
                    isPresented: .constant(vm.alertMessage != nil),
                    actions: { Button("OK") { vm.alertMessage = nil } },
