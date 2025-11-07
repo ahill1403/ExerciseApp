@@ -133,7 +133,6 @@
 		9C35F6E32E70B349006EC7E2 = {
 			isa = PBXGroup;
 			children = (
-				9C72F34B2EBE864600C4C61E /* Settings */,
 				9CD8C3AC2EB03F6D00F53CFF /* Support */,
 				9C85FF392E7340960085CEC1 /* UI */,
 				9C85FF2D2E733FFD0085CEC1 /* Services */,
@@ -196,13 +195,6 @@
 				9C3C9B432EB17DB000BFA20D /* WorkoutSessionView.swift */,
 			);
 			path = Views;
-			sourceTree = "<group>";
-		};
-		9C72F34B2EBE864600C4C61E /* Settings */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Settings;
 			sourceTree = "<group>";
 		};
 		9C72F34C2EBE867400C4C61E /* Settings */ = {

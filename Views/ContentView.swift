@@ -307,7 +307,7 @@ private struct WeekDots: View {
                 for index in newHighlights {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
                         withAnimation(.easeOut(duration: 0.3)) {
-                            highlightedIndices.remove(index)
+                            _ = highlightedIndices.remove(index)   // discard Int? so Result == Void
                         }
                     }
                 }
