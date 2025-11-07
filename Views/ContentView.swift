@@ -20,7 +20,13 @@ struct ContentView: View {
 
                 ScrollView {
                     VStack(spacing: 24) {
-                        HeroHeader()
+                        GeometryReader { proxy in
+                            let offset = proxy.frame(in: .named("dashboardScroll")).minY
+                            HeroHeader(scrollOffset: offset)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 8)
+                        }
+                        .frame(height: 120)
 
                         // Snapshot / Stats
                         ProgressSnapshotCard(
@@ -82,6 +88,7 @@ struct ContentView: View {
                     .padding(.vertical, 24)
                     .safeAreaPadding(.bottom, 120)
                 }
+                .coordinateSpace(name: "dashboardScroll")
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -138,9 +145,12 @@ struct ContentView: View {
 // MARK: - Header
 
 private struct HeroHeader: View {
+    let scrollOffset: CGFloat
     @State private var appear = false
 
     var body: some View {
+        let parallax = -scrollOffset * 0.25
+
         VStack(spacing: 12) {
             Text(greeting())
                 .font(.largeTitle.bold())
@@ -163,6 +173,7 @@ private struct HeroHeader: View {
 
             // no chips here (tabs handle nav)
         }
+        .offset(y: parallax)
         .onAppear { appear = true }
     }
 
@@ -238,6 +249,8 @@ private struct CenteredSummaryTile: View {
                 .font(.title)
                 .bold()
                 .gradientForeground()
+                .contentTransition(.numericText())
+                .animation(.spring(response: 0.5, dampingFraction: 0.85), value: value)
             Text(detail)
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -252,25 +265,133 @@ private struct CenteredSummaryTile: View {
 
 private struct WeekDots: View {
     let flags: [Bool]
+
+    @State private var previousFlags: [Bool] = []
+    @State private var highlightedIndices: Set<Int> = []
+
     private var symbols: [String] { Calendar.current.shortWeekdaySymbols.map { String($0.prefix(1)) } }
+    private var todayIndex: Int? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.firstWeekday = 1
+        let weekday = calendar.component(.weekday, from: Date()) - 1
+        guard (0..<symbols.count).contains(weekday) else { return nil }
+        return weekday
+    }
 
     var body: some View {
         HStack(spacing: 10) {
             ForEach(Array(flags.enumerated()), id: \.offset) { idx, on in
-                VStack(spacing: 6) {
-                    Circle()
-                        .fill(on
-                              ? AtlasTheme.gradient
-                              : LinearGradient(colors: [.secondary.opacity(0.3), .secondary.opacity(0.2)],
-                                               startPoint: .top, endPoint: .bottom))
-                        .frame(width: 16, height: 16)
-                        .overlay(Circle().strokeBorder(.white.opacity(0.12)))
-                    Text(symbols[idx])
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
+                WeekDot(
+                    label: symbols[idx],
+                    isOn: on,
+                    isToday: idx == todayIndex,
+                    isHighlighted: highlightedIndices.contains(idx)
+                )
             }
         }
+        .onAppear {
+            previousFlags = flags
+        }
+        .onChange(of: flags) { newValue in
+            let newHighlights = newValue.enumerated().compactMap { index, value -> Int? in
+                guard value else { return nil }
+                let wasOn = previousFlags.indices.contains(index) ? previousFlags[index] : false
+                return wasOn ? nil : index
+            }
+
+            if !newHighlights.isEmpty {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                    highlightedIndices.formUnion(newHighlights)
+                }
+
+                for index in newHighlights {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.8) {
+                        withAnimation(.easeOut(duration: 0.3)) {
+                            highlightedIndices.remove(index)
+                        }
+                    }
+                }
+            }
+
+            previousFlags = newValue
+        }
+    }
+}
+
+private struct WeekDot: View {
+    let label: String
+    let isOn: Bool
+    let isToday: Bool
+    let isHighlighted: Bool
+
+    @State private var highlightCycle = 0
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ZStack {
+                Circle()
+                    .fill(isOn ? AtlasTheme.gradient : inactiveFill)
+                    .frame(width: 18, height: 18)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(borderStyle, lineWidth: isToday ? 2 : 1)
+                    )
+
+                if isHighlighted {
+                    Circle()
+                        .stroke(AtlasTheme.accentGreen.opacity(0.45), lineWidth: 3)
+                        .frame(width: 34, height: 34)
+                        .phaseAnimator([false, true], trigger: highlightCycle) { view, phase in
+                            view
+                                .scaleEffect(phase ? 1.3 : 0.9)
+                                .opacity(phase ? 0 : 0.6)
+                        }
+                }
+            }
+            .overlay(alignment: .top) {
+                if isHighlighted {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.orange, .yellow)
+                        .offset(y: -18)
+                        .phaseAnimator([false, true], trigger: highlightCycle) { view, phase in
+                            view
+                                .scaleEffect(phase ? 1.25 : 0.85)
+                                .opacity(phase ? 1 : 0.2)
+                        }
+                }
+            }
+
+            Text(label)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 36)
+        .opacity(isOn ? 1 : 0.85)
+        .onAppear {
+            if isHighlighted { highlightCycle += 1 }
+        }
+        .onChange(of: isHighlighted) { newValue in
+            if newValue { highlightCycle += 1 }
+        }
+    }
+
+    private var inactiveFill: LinearGradient {
+        LinearGradient(
+            colors: [
+                .secondary.opacity(0.32),
+                .secondary.opacity(0.18)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var borderStyle: AnyShapeStyle {
+        if isOn || isToday {
+            return AnyShapeStyle(AtlasTheme.gradient)
+        }
+        return AnyShapeStyle(AtlasTheme.border)
     }
 }
 
