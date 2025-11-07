@@ -10,6 +10,7 @@ import Charts
 
 struct ProgressDashboardView: View {
     @StateObject private var vm = ProgressViewModel()
+    @State private var selectedRange: ProgressRange = .weekly
 
     var body: some View {
         ZStack { NeonMotionBackground() }
@@ -33,7 +34,33 @@ struct ProgressDashboardView: View {
                             .padding(.horizontal, 8)
                         }
 
-                        TrendCard(sessions: vm.sessions)
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack(spacing: 12) {
+                                Text("Progress Overview")
+                                    .font(.title3.bold())
+                                    .gradientForeground()
+                                Spacer()
+                                Picker("Range", selection: $selectedRange) {
+                                    ForEach(ProgressRange.allCases) { range in
+                                        Text(range.pickerTitle).tag(range)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .labelsHidden()
+                                .frame(maxWidth: 220)
+                                .accessibilityLabel("Time range")
+                            }
+
+                            VStack(spacing: 16) {
+                                ForEach(ProgressMetric.allCases) { metric in
+                                    ProgressMetricCard(
+                                        metric: metric,
+                                        data: vm.chartData(for: metric, range: selectedRange),
+                                        units: vm.preferredUnits
+                                    )
+                                }
+                            }
+                        }
 
                         // History
                         VStack(alignment: .leading, spacing: 8) {
@@ -67,40 +94,6 @@ struct ProgressDashboardView: View {
             }
             .atlasNavigationBarStyle()
             .onAppear { vm.refresh() }
-    }
-}
-
-// MARK: - Trend
-
-private struct TrendCard: View {
-    let sessions: [WorkoutSession]
-
-    // Small model so Charts has an Identifiable element (tuples don't work with key paths)
-    private struct DayCount: Identifiable {
-        let date: Date
-        let count: Int
-        var id: Date { date }
-    }
-
-    var body: some View {
-        let cal = Calendar(identifier: .gregorian)
-        let today = cal.startOfDay(for: Date())
-        let days = (0..<14).reversed().compactMap { cal.date(byAdding: .day, value: -$0, to: today) }
-        let grouped = Dictionary(grouping: sessions) { cal.startOfDay(for: $0.date) }
-        let data: [DayCount] = days.map { d in
-            DayCount(date: d, count: grouped[d]?.count ?? 0)
-        }
-
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Last 14 days").font(.headline)
-            Chart(data) { item in
-                BarMark(x: .value("Day", item.date),
-                        y: .value("Workouts", item.count))
-            }
-            .frame(height: 140)
-        }
-        .padding(12)
-        .glassCard(cornerRadius: 16)
     }
 }
 
@@ -148,5 +141,65 @@ private struct WorkoutRow: View {
         let mins = Int(t / 60)
         let secs = Int(t.truncatingRemainder(dividingBy: 60))
         return String(format: "%dm %02ds", mins, secs)
+    }
+}
+
+private struct ProgressMetricCard: View {
+    let metric: ProgressMetric
+    let data: [ProgressDataPoint]
+    let units: Units
+
+    private var maxDataValue: Double {
+        data.map(\.value).max() ?? 0
+    }
+
+    private var yUpperBound: Double {
+        let maxValue = maxDataValue
+        return maxValue == 0 ? 1 : maxValue * 1.2
+    }
+
+    private var totalValue: Double {
+        data.reduce(0) { $0 + $1.value }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(metric.title)
+                    .font(.headline)
+                Spacer()
+                Text(metric.summary(for: totalValue, units: units))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            Chart(data) { point in
+                BarMark(
+                    x: .value("Period", point.label),
+                    y: .value(metric.yAxisLabel(units: units), point.value)
+                )
+                .cornerRadius(6)
+                .foregroundStyle(AtlasTheme.gradient)
+                .annotation(position: .top, alignment: .center) {
+                    Text(metric.formattedValue(point.value))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .chartYAxis {
+                AxisMarks(position: .leading)
+            }
+            .chartXAxis {
+                AxisMarks(values: data.map(\.label)) { value in
+                    if let label = value.as(String.self) {
+                        AxisValueLabel(label)
+                    }
+                }
+            }
+            .chartYScale(domain: 0...yUpperBound)
+            .frame(height: 180)
+        }
+        .padding(16)
+        .glassCard(cornerRadius: 20)
     }
 }
