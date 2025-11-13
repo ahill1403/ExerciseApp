@@ -306,9 +306,21 @@ struct WorkoutSessionView: View {
                 if showSetManagerCard,
                    let workout = currentWorkoutDefinition,
                    let exercise = currentExerciseEntry {
-                    ManageSetsQuickCard(workout: workout, exercise: exercise) {
-                        activeSheet = .manageSets
-                    }
+                    ManageSetsQuickCard(
+                        vm: vm,
+                        workout: workout,
+                        exercise: exercise,
+                        onSetCompleted: startRestTimer,
+                        onEdit: { index, set in
+                            editExerciseID = exercise.id
+                            editSetIndex = index
+                            editReps = set.reps
+                            editWeight = set.weight
+                            editUnits = set.units
+                            activeSheet = .editSet
+                        },
+                        onManage: { activeSheet = .manageSets }
+                    )
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
                 }
@@ -362,19 +374,9 @@ private struct LoggingPanel: View {
                     Divider()
                         .opacity(0.08)
                         .padding(.vertical, 12)
-                    
-                    LoggedSetList(
-                        vm: vm,
+
+                    LoggedSetSummaryFooter(
                         exercise: exercise,
-                        onSetCompleted: onSetCompleted,
-                        onEdit: { index, set in
-                            editExerciseID = exercise.id
-                            editSetIndex = index
-                            editReps = set.reps
-                            editWeight = set.weight
-                            editUnits = set.units
-                            activeSheet = .editSet
-                        },
                         onManage: { activeSheet = .manageSets }
                     )
                 }
@@ -589,27 +591,35 @@ private struct AddSetInline: View {
 private struct LoggedSetList: View {
     @ObservedObject var vm: StartWorkoutViewModel
     let exercise: ExerciseEntry
+    var showHeader: Bool = true
+    var showManageButton: Bool = true
     var onSetCompleted: () -> Void
     var onEdit: (Int, SetEntry) -> Void
     var onManage: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Text("Logged Sets")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                
-                Spacer()
-                
-                Button(action: onManage) {
-                    Label("Manage", systemImage: "slider.horizontal.3")
-                        .font(.caption)
+            if showHeader || showManageButton {
+                HStack(spacing: 12) {
+                    if showHeader {
+                        Text("Logged Sets")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    if showManageButton {
+                        Button(action: onManage) {
+                            Label("Manage", systemImage: "slider.horizontal.3")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(AtlasTheme.accentGreen)
+                    }
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(AtlasTheme.accentGreen)
             }
-            
+
             VStack(spacing: 10) {
                 ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
                     LoggedSetRow(
@@ -641,6 +651,51 @@ private struct LoggedSetList: View {
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: exercise.sets)
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: vm.completedSetIDs)
+    }
+}
+
+private struct LoggedSetSummaryFooter: View {
+    let exercise: ExerciseEntry
+    var onManage: () -> Void
+
+    private var setSummary: String {
+        "\(exercise.sets.count) set\(exercise.sets.count == 1 ? "" : "s") logged"
+    }
+
+    private var bestSetDescription: String? {
+        guard let best = exercise.sets.max(by: { $0.weight < $1.weight }) else { return nil }
+        let repsText = "\(best.reps) reps"
+        let weightText: String
+        if best.weight.truncatingRemainder(dividingBy: 1) == 0 {
+            weightText = String(format: "%.0f %@", best.weight, best.units.rawValue)
+        } else {
+            weightText = String(format: "%.1f %@", best.weight, best.units.rawValue)
+        }
+        return "Top set: \(repsText) @ \(weightText)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(setSummary)
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(AtlasTheme.accentGreen)
+
+                if let best = bestSetDescription {
+                    Text(best)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Button(action: onManage) {
+                Label("Review logged sets", systemImage: "slider.horizontal.3")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(AtlasButtonStyle())
+        }
     }
 }
 
@@ -863,9 +918,14 @@ private struct StepButton: View {
 }
 
 private struct ManageSetsQuickCard: View {
+    @ObservedObject var vm: StartWorkoutViewModel
     let workout: WorkoutDefinition
     let exercise: ExerciseEntry
-    let onOpen: () -> Void
+    var onSetCompleted: () -> Void
+    var onEdit: (Int, SetEntry) -> Void
+    var onManage: () -> Void
+
+    @State private var isExpanded = false
     
     private var setSummary: String {
         "\(exercise.sets.count) set\(exercise.sets.count == 1 ? "" : "s") logged"
@@ -908,7 +968,7 @@ private struct ManageSetsQuickCard: View {
                     }
                 }
             }
-            
+
             if !exercise.sets.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -920,9 +980,50 @@ private struct ManageSetsQuickCard: View {
                     .padding(.vertical, 2)
                 }
                 .animation(.easeInOut(duration: 0.25), value: exercise.sets)
+
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 14, weight: .semibold))
+                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
+
+                        Text("Logged Sets")
+                            .font(.caption.weight(.semibold))
+
+                        Spacer()
+
+                        Text("\(exercise.sets.count)")
+                            .font(.caption2.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(AtlasTheme.gradient.opacity(0.12), in: Capsule())
+                    }
+                    .foregroundColor(AtlasTheme.textPrimary)
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+
+                if isExpanded {
+                    LoggedSetList(
+                        vm: vm,
+                        exercise: exercise,
+                        showHeader: false,
+                        showManageButton: false,
+                        onSetCompleted: onSetCompleted,
+                        onEdit: onEdit,
+                        onManage: onManage
+                    )
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 4)
+                }
             }
-            
-            Button(action: onOpen) {
+
+            Button(action: onManage) {
                 Label("View / Edit Sets", systemImage: "slider.horizontal.3")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
@@ -935,6 +1036,13 @@ private struct ManageSetsQuickCard: View {
         .glassCard(cornerRadius: 24)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(setSummary) for \(exercise.name). Tap to view or edit sets.")
+        .onChange(of: exercise.sets.count) { count in
+            if count == 0 {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
+                    isExpanded = false
+                }
+            }
+        }
     }
 }
 
