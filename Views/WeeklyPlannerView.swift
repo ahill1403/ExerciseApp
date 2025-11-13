@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 
 struct WeeklyPlannerView: View {
+    @Environment(\.atlasMotion) private var motion
     @State private var plan: WeeklyPlan
     @State private var expandedDay: Int
     @State private var alertMessage: String?
@@ -121,8 +122,10 @@ struct WeeklyPlannerView: View {
         }
 
         let recommended = PlannerStore.shared.recommendedPlan(for: profile)
-        plan = recommended
-        expandedDay = WeekPlanGrid.defaultExpandedDay(for: recommended)
+        withAnimation(motion.primary) {
+            plan = recommended
+            expandedDay = WeekPlanGrid.defaultExpandedDay(for: recommended)
+        }
         storedProfile = profile
         PlannerStore.shared.save(recommended)
         alertMessage = "Weekly plan updated using your profile."
