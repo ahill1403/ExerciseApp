@@ -13,6 +13,7 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published private(set) var todaysWorkouts: [WorkoutDefinition] = []
     @Published var currentWorkoutIndex: Int = 0
     @Published var completedWorkoutIDs: Set<String> = []
+    @Published var workoutsReadyForCompletion: Set<String> = []
     @Published var lastCompletionMessage: String?
     @Published var completedSetIDs: Set<UUID> = []
 
@@ -123,7 +124,9 @@ final class StartWorkoutViewModel: ObservableObject {
         startTime = Date()
         completedWorkoutIDs = []
         completedSetIDs = []
+        workoutsReadyForCompletion = []
         currentWorkoutIndex = 0
+        setTargetCache = [:]
 
         let planWorkouts = todaysPlanWorkouts()
         if !planWorkouts.isEmpty {
@@ -151,26 +154,37 @@ final class StartWorkoutViewModel: ObservableObject {
         workoutExerciseLookup[customDefinition.id] = entry.id
         currentWorkoutIndex = max(todaysWorkouts.count - 1, 0)
         completedWorkoutIDs.remove(customDefinition.id)
+        workoutsReadyForCompletion.remove(customDefinition.id)
+        setTargetCache.removeValue(forKey: customDefinition.id)
         newExerciseName = ""
         showAddExercise = false
     }
 
-    func addSet(to exerciseID: UUID, reps: Int, weight: Double, units: Units) {
-        guard let idx = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
+    @discardableResult
+    func addSet(to exerciseID: UUID, reps: Int, weight: Double, units: Units) -> SetEntry? {
+        guard let idx = exercises.firstIndex(where: { $0.id == exerciseID }) else { return nil }
         let entry = SetEntry(reps: reps, weight: weight, units: units)
         exercises[idx].sets.append(entry)
-        completedSetIDs.remove(entry.id)
+        completedSetIDs.insert(entry.id)
 
         if let workoutID = workoutID(forExercise: exerciseID) {
             reevaluateCompletion(for: workoutID)
         }
+        return entry
     }
 
     func removeExercise(_ exerciseID: UUID) {
         if let entry = exercises.first(where: { $0.id == exerciseID }) {
             completedSetIDs.subtract(entry.sets.map(\.id))
         }
+        let associatedWorkoutID = workoutExerciseLookup.first { $0.value == exerciseID }?.key
         exercises.removeAll { $0.id == exerciseID }
+        if let associatedWorkoutID {
+            workoutsReadyForCompletion.remove(associatedWorkoutID)
+            completedWorkoutIDs.remove(associatedWorkoutID)
+            workoutExerciseLookup[associatedWorkoutID] = nil
+            setTargetCache.removeValue(forKey: associatedWorkoutID)
+        }
     }
 
     func refreshPlanSuggestion(referenceDate: Date = Date()) {
@@ -201,6 +215,8 @@ final class StartWorkoutViewModel: ObservableObject {
         guard let l = last else { return }
         exercises = l.exercises
         completedSetIDs = []
+        workoutsReadyForCompletion = []
+        setTargetCache = [:]
         bindExercisesToWorkouts()
     }
 
@@ -247,6 +263,8 @@ final class StartWorkoutViewModel: ObservableObject {
         currentWorkoutIndex = 0
         workoutExerciseLookup = [:]
         completedSetIDs = []
+        workoutsReadyForCompletion = []
+        setTargetCache = [:]
         refreshPlanSuggestion()
         if clearCompletionMessage {
             lastCompletionMessage = nil
@@ -263,8 +281,10 @@ final class StartWorkoutViewModel: ObservableObject {
         if completedWorkoutIDs.contains(id) {
             completedWorkoutIDs.remove(id)
             currentWorkoutIndex = index
+            workoutsReadyForCompletion.remove(id)
         } else {
             completedWorkoutIDs.insert(id)
+            workoutsReadyForCompletion.remove(id)
             advanceToNextWorkout(after: index)
         }
     }
@@ -289,6 +309,15 @@ final class StartWorkoutViewModel: ObservableObject {
 
     func isPlannedExercise(_ id: UUID) -> Bool {
         workoutExerciseLookup.values.contains(id)
+    }
+
+    func targetSetCount(for workoutID: String) -> Int? {
+        plannedSetCount(for: workoutID)
+    }
+
+    func workoutID(forSet setID: UUID) -> String? {
+        guard let exerciseID = exerciseID(forSet: setID) else { return nil }
+        return workoutID(forExercise: exerciseID)
     }
 
     func toggleSetCompletion(for setID: UUID) {
@@ -318,21 +347,41 @@ final class StartWorkoutViewModel: ObservableObject {
         }
     }
 
+    func finalizeReadyWorkout(_ workoutID: String) {
+        guard workoutsReadyForCompletion.contains(workoutID),
+              let index = todaysWorkouts.firstIndex(where: { $0.id == workoutID }) else { return }
+
+        workoutsReadyForCompletion.remove(workoutID)
+        if !completedWorkoutIDs.contains(workoutID) {
+            completedWorkoutIDs.insert(workoutID)
+        }
+        advanceToNextWorkout(after: index)
+    }
+
     // MARK: - Private
 
     private var workoutExerciseLookup: [String: UUID] = [:]
+    private var setTargetCache: [String: Int] = [:]
 
     private func workoutID(forExercise exerciseID: UUID) -> String? {
         workoutExerciseLookup.first { $0.value == exerciseID }?.key
     }
 
-    private func workoutID(forSet setID: UUID) -> String? {
-        for (workoutID, exerciseID) in workoutExerciseLookup {
-            if let exerciseIndex = exercises.firstIndex(where: { $0.id == exerciseID }),
-               exercises[exerciseIndex].sets.contains(where: { $0.id == setID }) {
-                return workoutID
-            }
+    private func exerciseID(forSet setID: UUID) -> UUID? {
+        exercises.first(where: { $0.sets.contains(where: { $0.id == setID }) })?.id
+    }
+
+    private func plannedSetCount(for workoutID: String) -> Int? {
+        if let cached = setTargetCache[workoutID] {
+            return cached
         }
+
+        if let workout = todaysWorkouts.first(where: { $0.id == workoutID }) ?? WorkoutCatalog.shared.workout(for: workoutID),
+           let recommended = workout.recommendedSetCount {
+            setTargetCache[workoutID] = recommended
+            return recommended
+        }
+
         return nil
     }
 
@@ -343,14 +392,23 @@ final class StartWorkoutViewModel: ObservableObject {
         let hasSets = !exercise.sets.isEmpty
         let allCompleted = hasSets && exercise.sets.allSatisfy { completedSetIDs.contains($0.id) }
 
-        if allCompleted {
+        let meetsTarget: Bool
+        if let target = plannedSetCount(for: workoutID) {
+            meetsTarget = exercise.sets.count >= target
+        } else {
+            meetsTarget = hasSets
+        }
+
+        if allCompleted && meetsTarget {
             if !completedWorkoutIDs.contains(workoutID) {
-                completedWorkoutIDs.insert(workoutID)
-                advanceToNextWorkout(after: index)
+                workoutsReadyForCompletion.insert(workoutID)
             }
         } else if completedWorkoutIDs.contains(workoutID) {
             completedWorkoutIDs.remove(workoutID)
             currentWorkoutIndex = index
+            workoutsReadyForCompletion.remove(workoutID)
+        } else {
+            workoutsReadyForCompletion.remove(workoutID)
         }
     }
 
@@ -384,6 +442,7 @@ final class StartWorkoutViewModel: ObservableObject {
     }
 
     private func bindExercisesToWorkouts() {
+        setTargetCache = [:]
         var remaining = exercises
         var updated: [ExerciseEntry] = []
         var lookup: [String: UUID] = [:]

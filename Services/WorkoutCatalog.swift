@@ -340,3 +340,41 @@ final class WorkoutCatalog {
         return source.sorted { $0.name < $1.name }
     }
 }
+
+extension WorkoutDefinition {
+    var recommendedSetCount: Int? {
+        let text = summary.lowercased()
+        if let value = Self.extractInt(from: text, pattern: #"(\d+)\s*[-–]\s*(\d+)\s+(?:set|sets|round|rounds)"#, preferredGroup: 2, fallbackGroup: 1) {
+            return value
+        }
+        if let value = Self.extractInt(from: text, pattern: #"(\d+)\s+(?:set|sets|round|rounds)"#) {
+            return value
+        }
+        if let value = Self.extractInt(from: text, pattern: #"(\d+)\s*[x×]\s*\d+"#) {
+            return value
+        }
+        return nil
+    }
+
+    private static func extractInt(from text: String, pattern: String, preferredGroup: Int = 1, fallbackGroup: Int? = nil) -> Int? {
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, options: [], range: range) else { return nil }
+
+        var groups: [Int] = [preferredGroup]
+        if let fallbackGroup {
+            groups.append(fallbackGroup)
+        }
+
+        for group in groups where group <= match.numberOfRanges {
+            let nsRange = match.range(at: group)
+            if nsRange.location != NSNotFound,
+               let range = Range(nsRange, in: text),
+               let value = Int(text[range]) {
+                return value
+            }
+        }
+
+        return nil
+    }
+}
