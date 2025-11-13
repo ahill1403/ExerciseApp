@@ -46,6 +46,8 @@ struct WorkoutSessionView: View {
     @State private var celebrationState: CelebrationState? = nil
     @State private var lastCompletedSetIDs: Set<UUID> = []
     @State private var previousCompletedWorkoutIDs: Set<String> = []
+    @State private var previousReadyWorkoutIDs: Set<String> = []
+    @State private var pendingAutoCompletionWorkoutID: String? = nil
 
     private let setCardAnimation = Animation.spring(response: 0.32, dampingFraction: 0.82)
     private let defaultRestDuration: TimeInterval = 90
@@ -120,6 +122,8 @@ struct WorkoutSessionView: View {
                 celebrationState = nil
                 lastCompletedSetIDs = []
                 previousCompletedWorkoutIDs = []
+                previousReadyWorkoutIDs = []
+                pendingAutoCompletionWorkoutID = nil
             }
         }
         .overlay {
@@ -131,11 +135,13 @@ struct WorkoutSessionView: View {
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
                             restEndDate = nil
                         }
+                        finalizePendingWorkoutIfNeeded()
                     },
                     onComplete: {
                         withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
                             restEndDate = nil
                         }
+                        finalizePendingWorkoutIfNeeded()
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 )
@@ -177,13 +183,37 @@ struct WorkoutSessionView: View {
         .onChange(of: vm.completedSetIDs) { newValue in
             let newlyCompleted = newValue.subtracting(lastCompletedSetIDs)
             if !newlyCompleted.isEmpty {
-                startRestTimer()
+                for setID in newlyCompleted {
+                    guard let workoutID = vm.workoutID(forSet: setID) else { continue }
+                    if shouldShowRestTimer(afterCompletingSetIn: workoutID) {
+                        startRestTimer()
+                        break
+                    }
+                }
             }
             lastCompletedSetIDs = newValue
         }
+        .onChange(of: vm.workoutsReadyForCompletion) { newValue in
+            let added = newValue.subtracting(previousReadyWorkoutIDs)
+            if let workoutID = added.first {
+                pendingAutoCompletionWorkoutID = workoutID
+                if !shouldShowRestTimer(afterCompletingSetIn: workoutID) {
+                    finalizePendingWorkoutIfNeeded()
+                }
+            }
+
+            let removed = previousReadyWorkoutIDs.subtracting(newValue)
+            if let pendingID = pendingAutoCompletionWorkoutID, removed.contains(pendingID) {
+                pendingAutoCompletionWorkoutID = nil
+            }
+
+            previousReadyWorkoutIDs = newValue
+        }
         .onChange(of: vm.completedWorkoutIDs) { newValue in
             let added = newValue.subtracting(previousCompletedWorkoutIDs)
-            if let id = added.first,
+            if vm.todaysWorkouts.count > 0,
+               newValue.count == vm.todaysWorkouts.count,
+               let id = added.first,
                let workout = vm.todaysWorkouts.first(where: { $0.id == id }) {
                 withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
                     completionPrompt = workout
@@ -207,6 +237,39 @@ struct WorkoutSessionView: View {
     private func startRestTimer() {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
             restEndDate = Date().addingTimeInterval(defaultRestDuration)
+        }
+    }
+
+    private func shouldShowRestTimer(afterCompletingSetIn workoutID: String) -> Bool {
+        guard let exercise = vm.exercise(for: workoutID) else { return true }
+        let target = vm.targetSetCount(for: workoutID)
+        let meetsTarget: Bool
+        if let target {
+            meetsTarget = exercise.sets.count >= target
+        } else {
+            meetsTarget = !exercise.sets.isEmpty
+        }
+
+        let allSetsCompleted = !exercise.sets.isEmpty && exercise.sets.allSatisfy { vm.completedSetIDs.contains($0.id) }
+
+        if allSetsCompleted && meetsTarget {
+            let hasRemainingWorkouts = vm.todaysWorkouts.contains { workout in
+                guard workout.id != workoutID else { return false }
+                return !vm.completedWorkoutIDs.contains(workout.id)
+            }
+            if !hasRemainingWorkouts {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    private func finalizePendingWorkoutIfNeeded() {
+        guard let workoutID = pendingAutoCompletionWorkoutID else { return }
+        pendingAutoCompletionWorkoutID = nil
+        if vm.workoutsReadyForCompletion.contains(workoutID) {
+            vm.finalizeReadyWorkout(workoutID)
         }
     }
     
