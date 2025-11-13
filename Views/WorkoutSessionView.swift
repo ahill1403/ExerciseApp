@@ -22,11 +22,6 @@ private enum ActiveSheet: Identifiable {
     }
 }
 
-private struct CelebrationState: Identifiable {
-    let id = UUID()
-    let workoutName: String
-}
-
 struct WorkoutSessionView: View {
     @ObservedObject var vm: StartWorkoutViewModel
     
@@ -42,13 +37,7 @@ struct WorkoutSessionView: View {
     @State private var showFinishAlert = false
     @State private var showSetManagerCard = false
     @State private var restEndDate: Date? = nil
-    @State private var completionPrompt: WorkoutDefinition? = nil
-    @State private var celebrationState: CelebrationState? = nil
-    @State private var lastCompletedSetIDs: Set<UUID> = []
-    @State private var previousCompletedWorkoutIDs: Set<String> = []
-    @State private var previousReadyWorkoutIDs: Set<String> = []
-    @State private var pendingAutoCompletionWorkoutID: String? = nil
-
+    
     private let setCardAnimation = Animation.spring(response: 0.32, dampingFraction: 0.82)
     private let defaultRestDuration: TimeInterval = 90
     
@@ -64,19 +53,8 @@ struct WorkoutSessionView: View {
                 .padding(.bottom, 160)
             }
             
-            LoggingPanel(
-                vm: vm,
-                currentWorkoutDefinition: currentWorkoutDefinition,
-                currentExerciseEntry: currentExerciseEntry,
-                editExerciseID: $editExerciseID,
-                editSetIndex: $editSetIndex,
-                editReps: $editReps,
-                editWeight: $editWeight,
-                editUnits: $editUnits,
-                activeSheet: $activeSheet,
-                onSetCompleted: startRestTimer
-            )
-            .transition(.move(edge: .bottom).combined(with: .opacity))
+            loggingPanelView
+                .transition(.move(edge: .bottom).combined(with: .opacity))
         }
         .ignoresSafeArea(edges: .bottom)
         .toolbar {
@@ -118,12 +96,6 @@ struct WorkoutSessionView: View {
         .onChange(of: vm.isLogging) { isLogging in
             if !isLogging {
                 restEndDate = nil
-                completionPrompt = nil
-                celebrationState = nil
-                lastCompletedSetIDs = []
-                previousCompletedWorkoutIDs = []
-                previousReadyWorkoutIDs = []
-                pendingAutoCompletionWorkoutID = nil
             }
         }
         .overlay {
@@ -135,94 +107,36 @@ struct WorkoutSessionView: View {
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
                             restEndDate = nil
                         }
-                        finalizePendingWorkoutIfNeeded()
                     },
                     onComplete: {
                         withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
                             restEndDate = nil
                         }
-                        finalizePendingWorkoutIfNeeded()
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 )
                 .transition(.opacity.combined(with: .scale))
             }
         }
-        .overlay(alignment: .center) {
-            if let workout = completionPrompt {
-                WorkoutCompletionPrompt(
-                    workout: workout,
-                    onContinue: {
-                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                            completionPrompt = nil
-                        }
-                    },
-                    onFinish: {
-                        withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) {
-                            completionPrompt = nil
-                            celebrationState = CelebrationState(workoutName: workout.name)
-                        }
-                    }
-                )
-                .transition(.scale.combined(with: .opacity))
-            }
-        }
-        .overlay {
-            if let celebration = celebrationState {
-                WorkoutCelebrationOverlay(
-                    workoutName: celebration.workoutName,
-                    onCompleted: {
-                        celebrationState = nil
-                        vm.finish()
-                    }
-                )
-                .transition(.opacity)
-            }
-        }
         .animation(.spring(response: 0.45, dampingFraction: 0.86), value: restEndDate)
-        .onChange(of: vm.completedSetIDs) { newValue in
-            let newlyCompleted = newValue.subtracting(lastCompletedSetIDs)
-            if !newlyCompleted.isEmpty {
-                for setID in newlyCompleted {
-                    guard let workoutID = vm.workoutID(forSet: setID) else { continue }
-                    if shouldShowRestTimer(afterCompletingSetIn: workoutID) {
-                        startRestTimer()
-                        break
-                    }
-                }
-            }
-            lastCompletedSetIDs = newValue
-        }
-        .onChange(of: vm.workoutsReadyForCompletion) { newValue in
-            let added = newValue.subtracting(previousReadyWorkoutIDs)
-            if let workoutID = added.first {
-                pendingAutoCompletionWorkoutID = workoutID
-                if !shouldShowRestTimer(afterCompletingSetIn: workoutID) {
-                    finalizePendingWorkoutIfNeeded()
-                }
-            }
-
-            let removed = previousReadyWorkoutIDs.subtracting(newValue)
-            if let pendingID = pendingAutoCompletionWorkoutID, removed.contains(pendingID) {
-                pendingAutoCompletionWorkoutID = nil
-            }
-
-            previousReadyWorkoutIDs = newValue
-        }
-        .onChange(of: vm.completedWorkoutIDs) { newValue in
-            let added = newValue.subtracting(previousCompletedWorkoutIDs)
-            if vm.todaysWorkouts.count > 0,
-               newValue.count == vm.todaysWorkouts.count,
-               let id = added.first,
-               let workout = vm.todaysWorkouts.first(where: { $0.id == id }) {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                    completionPrompt = workout
-                }
-            }
-            previousCompletedWorkoutIDs = newValue
-        }
     }
-
+    
+    // MARK: - Extracted panel (helps the type-checker)
+    private var loggingPanelView: some View {
+        LoggingPanel(
+            vm: vm,
+            currentWorkoutDefinition: currentWorkoutDefinition,
+            currentExerciseEntry: currentExerciseEntry,
+            editExerciseID: $editExerciseID,
+            editSetIndex: $editSetIndex,
+            editReps: $editReps,
+            editWeight: $editWeight,
+            editUnits: $editUnits,
+            activeSheet: $activeSheet,
+            onSetCompleted: { startRestTimer() }
+        )
+    }
+    
     // MARK: - Current selections
     private var currentWorkoutDefinition: WorkoutDefinition? {
         guard vm.currentWorkoutIndex >= 0, vm.currentWorkoutIndex < vm.todaysWorkouts.count else { return nil }
@@ -233,43 +147,10 @@ struct WorkoutSessionView: View {
         guard let workout = currentWorkoutDefinition else { return nil }
         return vm.exercise(for: workout.id)
     }
-
+    
     private func startRestTimer() {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
             restEndDate = Date().addingTimeInterval(defaultRestDuration)
-        }
-    }
-
-    private func shouldShowRestTimer(afterCompletingSetIn workoutID: String) -> Bool {
-        guard let exercise = vm.exercise(for: workoutID) else { return true }
-        let target = vm.targetSetCount(for: workoutID)
-        let meetsTarget: Bool
-        if let target {
-            meetsTarget = exercise.sets.count >= target
-        } else {
-            meetsTarget = !exercise.sets.isEmpty
-        }
-
-        let allSetsCompleted = !exercise.sets.isEmpty && exercise.sets.allSatisfy { vm.completedSetIDs.contains($0.id) }
-
-        if allSetsCompleted && meetsTarget {
-            let hasRemainingWorkouts = vm.todaysWorkouts.contains { workout in
-                guard workout.id != workoutID else { return false }
-                return !vm.completedWorkoutIDs.contains(workout.id)
-            }
-            if !hasRemainingWorkouts {
-                return false
-            }
-        }
-
-        return true
-    }
-
-    private func finalizePendingWorkoutIfNeeded() {
-        guard let workoutID = pendingAutoCompletionWorkoutID else { return }
-        pendingAutoCompletionWorkoutID = nil
-        if vm.workoutsReadyForCompletion.contains(workoutID) {
-            vm.finalizeReadyWorkout(workoutID)
         }
     }
     
@@ -1239,203 +1120,6 @@ private struct RestTimerOverlay: View {
         }
         .onAppear { completionDispatched = false }
         .onChange(of: endDate) { _ in completionDispatched = false }
-    }
-}
-
-private struct WorkoutCompletionPrompt: View {
-    let workout: WorkoutDefinition
-    var onContinue: () -> Void
-    var onFinish: () -> Void
-
-    @State private var animateIn = false
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.45)
-                .ignoresSafeArea()
-                .transition(.opacity)
-
-            VStack(spacing: 22) {
-                VStack(spacing: 10) {
-                    Text("Workout complete?")
-                        .font(.title3.bold())
-                        .foregroundStyle(AtlasTheme.textPrimary)
-
-                    Text("Nice work finishing \(workout.name). You can jump to the next movement or wrap up your session.")
-                        .font(.subheadline)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                }
-
-                VStack(spacing: 12) {
-                    Button(action: onFinish) {
-                        Label("Finish workout", systemImage: "flag.checkered")
-                    }
-                    .buttonStyle(AtlasButtonStyle())
-
-                    Button(action: onContinue) {
-                        Label("Continue session", systemImage: "arrow.uturn.forward")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .fill(AtlasTheme.cardFill)
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                    .stroke(AtlasTheme.border, lineWidth: 1)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(28)
-            .background(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(AtlasTheme.bgElevated.opacity(0.98))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(AtlasTheme.border, lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.28), radius: 22, x: 0, y: 18)
-            .scaleEffect(animateIn ? 1 : 0.88)
-            .opacity(animateIn ? 1 : 0)
-            .onAppear {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) {
-                    animateIn = true
-                }
-            }
-        }
-    }
-}
-
-private struct WorkoutCelebrationOverlay: View {
-    let workoutName: String
-    var onCompleted: () -> Void
-
-    @State private var animateBadge = false
-    @State private var showText = false
-    @State private var didFireCompletion = false
-
-    var body: some View {
-        ZStack {
-            Color.black.opacity(0.55)
-                .ignoresSafeArea()
-                .transition(.opacity)
-
-            ConfettiRain()
-                .allowsHitTesting(false)
-
-            VStack(spacing: 20) {
-                ZStack {
-                    Circle()
-                        .fill(AtlasTheme.gradient)
-                        .frame(width: 120, height: 120)
-                        .scaleEffect(animateBadge ? 1 : 0.6)
-                        .shadow(color: AtlasTheme.accentGreen.opacity(0.45), radius: 18, x: 0, y: 10)
-
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 48, weight: .bold))
-                        .foregroundStyle(Color.white)
-                        .scaleEffect(animateBadge ? 1 : 0.6)
-                }
-                .animation(.spring(response: 0.55, dampingFraction: 0.7), value: animateBadge)
-
-                VStack(spacing: 8) {
-                    Text("Workout complete!")
-                        .font(.title.bold())
-                        .foregroundStyle(AtlasTheme.textPrimary)
-                        .opacity(showText ? 1 : 0)
-
-                    Text("You crushed \(workoutName). Take a breath—you've earned it!")
-                        .font(.headline)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.secondary)
-                        .opacity(showText ? 1 : 0)
-                }
-                .animation(.easeOut(duration: 0.45), value: showText)
-            }
-            .padding(32)
-            .background(
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .fill(AtlasTheme.bgElevated.opacity(0.94))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 32, style: .continuous)
-                    .stroke(AtlasTheme.border, lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.28), radius: 24, x: 0, y: 16)
-        }
-        .onAppear {
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.75)) {
-                animateBadge = true
-            }
-
-            withAnimation(.easeOut(duration: 0.45).delay(0.2)) {
-                showText = true
-            }
-
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) {
-                guard !didFireCompletion else { return }
-                didFireCompletion = true
-                onCompleted()
-            }
-        }
-        .onDisappear {
-            didFireCompletion = true
-        }
-    }
-}
-
-private struct ConfettiRain: View {
-    private struct Piece: Identifiable {
-        let id = UUID()
-        let x: CGFloat
-        let delay: Double
-        let duration: Double
-        let size: CGSize
-        let rotation: Angle
-        let color: Color
-    }
-
-    @State private var animate = false
-
-    private let pieces: [Piece] = (0..<18).map { index in
-        let fraction = CGFloat(index) / 18
-        let x = 0.1 + fraction * 0.8
-        let delay = Double(index) * 0.08
-        let duration = 1.6 + Double(index % 4) * 0.15
-        let size = CGSize(width: 10 + CGFloat(index % 3) * 4, height: 16 + CGFloat((index + 1) % 4) * 3)
-        let rotation = Angle.degrees(Double(index) * 38)
-        let colors: [Color] = [AtlasTheme.accentGreen, AtlasTheme.emerald, Color.white.opacity(0.9)]
-        return Piece(x: x, delay: delay, duration: duration, size: size, rotation: rotation, color: colors[index % colors.count])
-    }
-
-    var body: some View {
-        GeometryReader { proxy in
-            ForEach(pieces) { piece in
-                RoundedRectangle(cornerRadius: piece.size.width / 2, style: .continuous)
-                    .fill(piece.color)
-                    .frame(width: piece.size.width, height: piece.size.height)
-                    .rotationEffect(animate ? piece.rotation : .zero)
-                    .position(
-                        x: piece.x * proxy.size.width,
-                        y: animate ? proxy.size.height + 40 : -40
-                    )
-                    .animation(
-                        Animation.linear(duration: piece.duration)
-                            .repeatForever(autoreverses: false)
-                            .delay(piece.delay),
-                        value: animate
-                    )
-            }
-        }
-        .ignoresSafeArea()
-        .onAppear { animate = true }
     }
 }
 
