@@ -33,6 +33,7 @@ struct StartWorkoutView: View {
 
             if !vm.isLogging {
                 homeContent
+                    .transition(sessionTransition)
             } else {
                 WorkoutSessionView(vm: vm)
                     .transition(sessionTransition)
