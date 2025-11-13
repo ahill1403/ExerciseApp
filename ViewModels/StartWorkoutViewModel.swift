@@ -160,6 +160,10 @@ final class StartWorkoutViewModel: ObservableObject {
         let entry = SetEntry(reps: reps, weight: weight, units: units)
         exercises[idx].sets.append(entry)
         completedSetIDs.remove(entry.id)
+
+        if let workoutID = workoutID(forExercise: exerciseID) {
+            reevaluateCompletion(for: workoutID)
+        }
     }
 
     func removeExercise(_ exerciseID: UUID) {
@@ -288,10 +292,15 @@ final class StartWorkoutViewModel: ObservableObject {
     }
 
     func toggleSetCompletion(for setID: UUID) {
-        if completedSetIDs.contains(setID) {
+        let wasCompleted = completedSetIDs.contains(setID)
+        if wasCompleted {
             completedSetIDs.remove(setID)
         } else {
             completedSetIDs.insert(setID)
+        }
+
+        if let workoutID = workoutID(forSet: setID) {
+            reevaluateCompletion(for: workoutID)
         }
     }
 
@@ -303,11 +312,47 @@ final class StartWorkoutViewModel: ObservableObject {
         guard let exerciseIndex = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         exercises[exerciseIndex].sets.removeAll { $0.id == setID }
         completedSetIDs.remove(setID)
+
+        if let workoutID = workoutID(forExercise: exerciseID) {
+            reevaluateCompletion(for: workoutID)
+        }
     }
 
     // MARK: - Private
 
     private var workoutExerciseLookup: [String: UUID] = [:]
+
+    private func workoutID(forExercise exerciseID: UUID) -> String? {
+        workoutExerciseLookup.first { $0.value == exerciseID }?.key
+    }
+
+    private func workoutID(forSet setID: UUID) -> String? {
+        for (workoutID, exerciseID) in workoutExerciseLookup {
+            if let exerciseIndex = exercises.firstIndex(where: { $0.id == exerciseID }),
+               exercises[exerciseIndex].sets.contains(where: { $0.id == setID }) {
+                return workoutID
+            }
+        }
+        return nil
+    }
+
+    private func reevaluateCompletion(for workoutID: String) {
+        guard let index = todaysWorkouts.firstIndex(where: { $0.id == workoutID }),
+              let exercise = exercise(for: workoutID) else { return }
+
+        let hasSets = !exercise.sets.isEmpty
+        let allCompleted = hasSets && exercise.sets.allSatisfy { completedSetIDs.contains($0.id) }
+
+        if allCompleted {
+            if !completedWorkoutIDs.contains(workoutID) {
+                completedWorkoutIDs.insert(workoutID)
+                advanceToNextWorkout(after: index)
+            }
+        } else if completedWorkoutIDs.contains(workoutID) {
+            completedWorkoutIDs.remove(workoutID)
+            currentWorkoutIndex = index
+        }
+    }
 
     private func todaysPlanWorkouts(date: Date = Date()) -> [WorkoutDefinition] {
         let plan = PlannerStore.shared.load()
