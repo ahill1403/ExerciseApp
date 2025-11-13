@@ -38,7 +38,7 @@ struct WeeklyPlannerView: View {
                             .padding(.top, 8)
                         }
                         .padding(20)
-                        .safeAreaPadding(.bottom, 160)
+                        .tabBarAware()
                     }
                 )
                 .navigationBarTitleDisplayMode(.inline)

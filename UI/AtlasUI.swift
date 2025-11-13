@@ -164,6 +164,8 @@ struct NeonMotionBackground: View { // kept name for back-compat
 
 struct AtlasButtonStyle: ButtonStyle {
     var gradient: LinearGradient = AtlasTheme.gradient
+    @Environment(\.atlasMotion) private var motion
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
@@ -175,8 +177,8 @@ struct AtlasButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .strokeBorder(.white.opacity(0.10))
             )
-            .scaleEffect(configuration.isPressed ? 0.98 : 1)
-            .animation(.spring(response: 0.28, dampingFraction: 0.72), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !motion.reduceMotion ? 0.98 : 1)
+            .animation(motion.micro, value: configuration.isPressed)
             .shadow(color: Color.black.opacity(0.10), radius: 10, x: 0, y: 8)
     }
 }

@@ -15,7 +15,6 @@ final class OnboardingViewModel: ObservableObject {
     @Published var notificationsAuthorized = false
     @Published var recommendedPlan: WeeklyPlan?
     @Published var planDecision: PlanDecision?
-    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     enum Step: Int, CaseIterable {
         case experience, goal, frequency, reminder, physique, plan, done
@@ -178,7 +177,6 @@ final class OnboardingViewModel: ObservableObject {
             NotificationManager.shared.scheduleWeeklyReminders(time: data.reminderTime, daysPerWeek: data.daysPerWeek)
         }
 
-        hasCompletedOnboarding = true
         step = .done
     }
 
