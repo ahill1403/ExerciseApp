@@ -14,6 +14,7 @@ enum DevReset {
         ud.removeObject(forKey: "userProfile")
         ud.removeObject(forKey: "workoutHistory")
         ud.removeObject(forKey: "weeklyPlan")
+        ud.removeObject(forKey: "atlas.selectedTab")
         NotificationManager.shared.cancelReminders()
         ud.synchronize()
     }
@@ -33,6 +34,7 @@ enum DevReset {
         // App preferences / flags
         ud.removeObject(forKey: "weeklyGoal")
         ud.removeObject(forKey: "appleHealthEnabled")
+        ud.removeObject(forKey: "atlas.selectedTab")
 
         // Notifications
         NotificationManager.shared.cancelReminders()

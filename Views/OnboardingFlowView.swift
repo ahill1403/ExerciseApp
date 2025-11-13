@@ -2,14 +2,24 @@ import SwiftUI
 
 struct OnboardingFlowView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.atlasMotion) private var motion
     @StateObject private var vm = OnboardingViewModel()
-    
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var didFinalize = false
+
     var body: some View {
         NavigationStack {
             ZStack {
                 NeonMotionBackground()
 
                 VStack(spacing: 16) {
+                    let stepTransition: AnyTransition = motion.reduceMotion
+                        ? .opacity
+                        : .asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .trailing)),
+                            removal: .opacity.combined(with: .move(edge: .leading))
+                        )
+
                     // Progress: hide on .done to avoid out-of-bounds warning
                     if vm.step != .done {
                         let progress = vm.progress
@@ -27,15 +37,10 @@ struct OnboardingFlowView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 0)
                             .id(vm.step)
-                            .transition(
-                                .asymmetric(
-                                    insertion: .opacity.combined(with: .move(edge: .trailing)),
-                                    removal: .opacity.combined(with: .move(edge: .leading))
-                                )
-                            )
+                            .transition(stepTransition)
                     }
                     .scrollIndicators(.hidden)
-                    .animation(.spring(response: 0.6, dampingFraction: 0.82), value: vm.step)
+                    .animation(motion.primary, value: vm.step)
                     
                     VStack(spacing: 12) {
                         let title = vm.step == .plan ? "Finish" : "Continue"
@@ -64,7 +69,7 @@ struct OnboardingFlowView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 12)
-                    .animation(.easeInOut(duration: 1.00), value: vm.step)  // smooth fade, no layout “morphs”
+                    .animation(motion.relaxed, value: vm.step)
                 }
             }
             .toolbar {
@@ -77,6 +82,7 @@ struct OnboardingFlowView: View {
             // iOS 17+ onChange variant: two-parameter closure
         }
         .onAppear {
+            didFinalize = false
             NotificationCenter.default.post(name: .atlasTabBarVisibilityShouldHide, object: true)
         }
         .onDisappear {
@@ -125,17 +131,26 @@ private extension OnboardingFlowView {
                         .foregroundStyle(.secondary)
                 }
 
-                Button("Continue") { dismiss() }
+                Button("Continue", action: finalizeOnboarding)
                     .buttonStyle(AtlasButtonStyle())
                     .padding(.top, 4)
             }
             .padding(16)
             .autoAdvance(
                 after: AppConfig.Onboarding.completionHoldSeconds,
-                perform: { dismiss() }
+                perform: finalizeOnboarding
             )
             .padding(16)
         }
+    }
+}
+
+private extension OnboardingFlowView {
+    func finalizeOnboarding() {
+        guard !didFinalize else { return }
+        didFinalize = true
+        hasCompletedOnboarding = true
+        dismiss()
     }
 }
 

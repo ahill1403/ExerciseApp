@@ -20,8 +20,11 @@ struct REPSApp: App {
 
 private struct RootRouter: View {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        let motion = AtlasMotionPalette(reduceMotion: reduceMotion)
+
         ZStack {
             if hasCompletedOnboarding {
                 AtlasTabRoot()
@@ -31,7 +34,8 @@ private struct RootRouter: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 0.6), value: hasCompletedOnboarding)
+        .animation(motion.crossfade, value: hasCompletedOnboarding)
+        .environment(\.atlasMotion, motion)
     }
 }
 

@@ -86,7 +86,7 @@ struct ContentView: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 24)
-                    .safeAreaPadding(.bottom, 120)
+                    .tabBarAware()
                 }
                 .coordinateSpace(name: "dashboardScroll")
             }

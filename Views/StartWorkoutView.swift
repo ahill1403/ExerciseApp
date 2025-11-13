@@ -9,6 +9,7 @@ import SwiftUI
 
 struct StartWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.atlasMotion) private var motion
     @StateObject private var vm = StartWorkoutViewModel()
 
     // UI state only used on the home screen
@@ -26,12 +27,15 @@ struct StartWorkoutView: View {
         ZStack {
             NeonMotionBackground()
 
+            let sessionTransition = motion.reduceMotion
+                ? AnyTransition.opacity
+                : AnyTransition.move(edge: .bottom).combined(with: .opacity)
+
             if !vm.isLogging {
                 homeContent
             } else {
-                // The in-session UI is now separated.
                 WorkoutSessionView(vm: vm)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(sessionTransition)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
@@ -57,11 +61,11 @@ struct StartWorkoutView: View {
                 EncouragementBanner(message: message)
                     .padding(.horizontal, 20)
                     .padding(.top, 12)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .transition(motion.bannerTransition)
             }
         }
-        .animation(.spring(response: 0.42, dampingFraction: 0.86), value: completionMessage)
-        .animation(.spring(response: 0.42, dampingFraction: 0.85), value: vm.isLogging)
+        .animation(motion.primary, value: completionMessage)
+        .animation(motion.primary, value: vm.isLogging)
         .onAppear {
             NotificationCenter.default.post(name: .atlasLoggingStateChanged, object: vm.isLogging)
         }
@@ -69,9 +73,7 @@ struct StartWorkoutView: View {
             NotificationCenter.default.post(name: .atlasLoggingStateChanged, object: isLogging)
 
             if isLogging {
-                withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
-                    completionMessage = nil
-                }
+                withAnimation(motion.primary) { completionMessage = nil }
             } else if let message = vm.lastCompletionMessage, completionMessage != message {
                 presentCompletionMessage(message)
             }
@@ -94,7 +96,7 @@ struct StartWorkoutView: View {
             }
             .padding(20)
         }
-        .safeAreaPadding(.bottom, 160)
+        .tabBarAware()
     }
 
     @ViewBuilder
@@ -216,7 +218,7 @@ struct StartWorkoutView: View {
                         template: template,
                         isExpanded: isExpanded,
                         onToggle: {
-                            withAnimation(.easeInOut(duration: 0.2)) {
+                            withAnimation(motion.micro) {
                                 expandedTemplateID = isExpanded ? nil : template.id
                             }
                         },
@@ -227,13 +229,11 @@ struct StartWorkoutView: View {
                     )
                 }
             }
-            .animation(.easeInOut(duration: 0.2), value: expandedTemplateID)
+            .animation(motion.micro, value: expandedTemplateID)
 
             if vm.templates.count > 2 {
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showAllTemplates.toggle()
-                    }
+                    withAnimation(motion.micro) { showAllTemplates.toggle() }
                 } label: {
                     HStack(spacing: 8) {
                         Text(showAllTemplates ? "Show fewer" : "More templates")
@@ -290,7 +290,7 @@ private extension StartWorkoutView {
         completionMessage = message
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.88)) {
+            withAnimation(motion.relaxed) {
                 completionMessage = nil
             }
             vm.lastCompletionMessage = nil

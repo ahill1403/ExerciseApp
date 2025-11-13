@@ -35,65 +35,92 @@ private let tabSpecs: [TabSpec] = [
 // MARK: - Root Shell
 
 struct AtlasTabRoot: View {
-    @State private var selected: AtlasTab = .home
+    @Environment(\.atlasMotion) private var motion
+    @AppStorage("atlas.selectedTab") private var storedTabRawValue: Int = AtlasTab.home.rawValue
+
+    @State private var selected: AtlasTab
     @State private var hideTabBar = false
     @State private var isWorkoutLogging = false
     @State private var isTabBarExternallyHidden = false
+    @State private var tabBarHeight: CGFloat = 0
+
+    init() {
+        if let raw = UserDefaults.standard.object(forKey: "atlas.selectedTab") as? Int,
+           let tab = AtlasTab(rawValue: raw) {
+            _selected = State(initialValue: tab)
+        } else {
+            _selected = State(initialValue: .home)
+        }
+    }
 
     var body: some View {
-        ZStack {
-            Group {
-                switch selected {
-                case .home:
-                    NavigationStack { ContentView() }
-                case .planner:
-                    NavigationStack { WeeklyPlannerView() }
-                case .workout:
-                    NavigationStack { StartWorkoutView() }
-                case .insights:
-                    NavigationStack { ProgressDashboardView() }
-                case .settings:
-                    NavigationStack { SettingsHubView() }
-                }
-            }
-        }
-        .overlay(alignment: .bottom) {
+        ZStack(alignment: .bottom) {
+            tabContent
+                .environment(\.atlasTabBarHeight, hideTabBar ? 0 : tabBarHeight)
+
             if !hideTabBar {
                 AtlasTabBar(selected: $selected)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(motion.tabBarTransition)
                     .zIndex(1)
             }
         }
+        .onPreferenceChange(TabBarHeightPreferenceKey.self) { tabBarHeight = $0 }
         .highPriorityGesture(tabSwipeGesture)
-        .onAppear { hideTabBar = shouldHideTabBar(for: selected) }
+        .onAppear {
+            hideTabBar = shouldHideTabBar(for: selected)
+            storedTabRawValue = selected.rawValue
+        }
         .onChange(of: selected) { newValue in
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
-                if newValue != .workout {
-                    isWorkoutLogging = false
-                }
+            storedTabRawValue = newValue.rawValue
+            if newValue != .workout { isWorkoutLogging = false }
+            withAnimation(motion.elevated) {
                 hideTabBar = shouldHideTabBar(for: newValue)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .atlasLoggingStateChanged)) { note in
             guard let isLogging = note.object as? Bool else { return }
             isWorkoutLogging = isLogging
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            withAnimation(motion.elevated) {
                 hideTabBar = shouldHideTabBar(for: selected)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .atlasTabBarVisibilityShouldHide)) { note in
             guard let shouldHide = note.object as? Bool else { return }
             isTabBarExternallyHidden = shouldHide
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) {
+            withAnimation(motion.elevated) {
                 hideTabBar = shouldHideTabBar(for: selected)
             }
         }
-
+        .sensoryFeedback(.selection, trigger: selected)
     }
-}
 
-private extension AtlasTabRoot {
-    var tabSwipeGesture: some Gesture {
+    @ViewBuilder
+    private var tabContent: some View {
+        ZStack {
+            TabContainer(tab: .home, selected: selected) {
+                NavigationStack { ContentView() }
+            }
+
+            TabContainer(tab: .planner, selected: selected) {
+                NavigationStack { WeeklyPlannerView() }
+            }
+
+            TabContainer(tab: .workout, selected: selected) {
+                NavigationStack { StartWorkoutView() }
+            }
+
+            TabContainer(tab: .insights, selected: selected) {
+                NavigationStack { ProgressDashboardView() }
+            }
+
+            TabContainer(tab: .settings, selected: selected) {
+                NavigationStack { SettingsHubView() }
+            }
+        }
+        .animation(motion.crossfade, value: selected)
+    }
+
+    private var tabSwipeGesture: some Gesture {
         DragGesture(minimumDistance: 20, coordinateSpace: .local)
             .onEnded { value in
                 guard abs(value.translation.height) < 60 else { return }
@@ -106,20 +133,40 @@ private extension AtlasTabRoot {
             }
     }
 
-    func moveToAdjacentTab(offset: Int) {
+    private func moveToAdjacentTab(offset: Int) {
         guard let currentIndex = AtlasTab.allCases.firstIndex(of: selected) else { return }
         let newIndex = currentIndex + offset
 
         guard (0..<AtlasTab.allCases.count).contains(newIndex) else { return }
 
-        withAnimation(.easeInOut(duration: 0.2)) {
+        withAnimation(motion.micro) {
             selected = AtlasTab.allCases[newIndex]
         }
     }
 
-    func shouldHideTabBar(for tab: AtlasTab) -> Bool {
+    private func shouldHideTabBar(for tab: AtlasTab) -> Bool {
         if isTabBarExternallyHidden { return true }
         return tab == .workout && isWorkoutLogging
+    }
+}
+
+private struct TabContainer<Content: View>: View {
+    let tab: AtlasTab
+    let selected: AtlasTab
+    let content: () -> Content
+
+    init(tab: AtlasTab, selected: AtlasTab, @ViewBuilder content: @escaping () -> Content) {
+        self.tab = tab
+        self.selected = selected
+        self.content = content
+    }
+
+    var body: some View {
+        content()
+            .opacity(selected == tab ? 1 : 0)
+            .allowsHitTesting(selected == tab)
+            .accessibilityHidden(selected != tab)
+            .zIndex(selected == tab ? 1 : 0)
     }
 }
 
@@ -129,22 +176,10 @@ struct AtlasTabBar: View {
     @Environment(\.displayScale) private var scale
     @Binding var selected: AtlasTab
 
-    var hairline: CGFloat { 1.0 / max(scale, 2) } // crisp
-
-    private var bottomInset: CGFloat {
-        #if canImport(UIKit)
-        return UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap { $0.windows }
-            .first { $0.isKeyWindow }?.safeAreaInsets.bottom ?? 0
-        #else
-        return 0
-        #endif
-    }
+    private var hairline: CGFloat { 1.0 / max(scale, 2) }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Top divider (muted, scheme-aware)
             Rectangle()
                 .fill(AtlasTheme.dividerColor)
                 .frame(height: hairline)
@@ -160,30 +195,28 @@ struct AtlasTabBar: View {
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
-            .padding(.bottom, 5)
+            .padding(.bottom, 6)
         }
         .background(
-            // Subtle surface gradient to match cards/sheets
             LinearGradient(
                 colors: [
-                    AtlasTheme.bgElevated.opacity(0.90),
-                    AtlasTheme.bgElevated.opacity(0.98)
+                    AtlasTheme.bgElevated.opacity(0.68),
+                    AtlasTheme.bgElevated.opacity(0.85)
                 ],
-                startPoint: .top, endPoint: .bottom
+                startPoint: .top,
+                endPoint: .bottom
             )
-            .overlay(
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.05), .clear],
-                            startPoint: .top, endPoint: .bottom
-                        )
-                    )
-                    .frame(height: 50)
-                    .frame(maxHeight: .infinity, alignment: .top)
-            )
-            .ignoresSafeArea(edges: .bottom)
         )
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(
+                        key: TabBarHeightPreferenceKey.self,
+                        value: proxy.size.height + proxy.safeAreaInsets.bottom
+                    )
+            }
+        )
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 
@@ -192,6 +225,7 @@ struct AtlasTabBar: View {
 private struct AtlasTabButton: View {
     let spec: TabSpec
     @Binding var selected: AtlasTab
+    @Environment(\.atlasMotion) private var motion
 
     var isSelected: Bool { selected == spec.tab }
 
@@ -218,14 +252,16 @@ private struct AtlasTabButton: View {
             .accessibilityAddTraits(isSelected ? .isSelected : [])
         }
         .buttonStyle(.plain)
-        .scaleEffect(isSelected ? 1.06 : 1.0)
-        .animation(.spring(response: 0.32, dampingFraction: 0.72), value: isSelected)
+        .scaleEffect(motion.reduceMotion ? 1 : (isSelected ? 1.06 : 1.0))
+        .animation(motion.selection, value: isSelected)
     }
 }
 
 private struct CenterHomeButton: View {
     let isSelected: Bool
     let action: () -> Void
+
+    @Environment(\.atlasMotion) private var motion
 
     var body: some View {
         Button(action: action) {
@@ -245,9 +281,9 @@ private struct CenterHomeButton: View {
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity)
-        .scaleEffect(isSelected ? 1.02 : 0.96)
+        .scaleEffect(motion.reduceMotion ? 1 : (isSelected ? 1.02 : 0.96))
         .shadow(color: AtlasTheme.accentGreen.opacity(isSelected ? 0.32 : 0.18), radius: isSelected ? 18 : 12, y: isSelected ? 12 : 6)
-        .animation(.spring(response: 0.45, dampingFraction: 0.8), value: isSelected)
+        .animation(motion.selection, value: isSelected)
     }
 }
 
@@ -318,7 +354,7 @@ struct SettingsHubView: View {
                     }
                 }
                 .padding(20)
-                .safeAreaPadding(.bottom, 96)
+                .tabBarAware()
             }
         }
         .navigationBarTitleDisplayMode(.inline)
