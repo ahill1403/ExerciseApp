@@ -13,7 +13,7 @@ struct REPSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            AtlasTabRoot()
+            RootRouter()
         }
     }
 }
@@ -24,15 +24,14 @@ private struct RootRouter: View {
     var body: some View {
         ZStack {
             if hasCompletedOnboarding {
-                // ✅ After onboarding, load the tabbed root (with center Home button)
                 AtlasTabRoot()
                     .transition(.opacity)
             } else {
-                // ✅ Your existing welcome/onboarding entry
                 WelcomeView()
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut(duration: 3.00), value: hasCompletedOnboarding)
+        .animation(.easeInOut(duration: 0.6), value: hasCompletedOnboarding)
     }
 }
+

@@ -7,5 +7,8 @@
 
 enum AppConfig {
     enum Onboarding {
-        static var completionHoldSeconds: Double = 3.5    }
+        // Completion screen should hold for 4 seconds before auto-advancing.
+        static var completionHoldSeconds: Double = 4.0
+    }
 }
+

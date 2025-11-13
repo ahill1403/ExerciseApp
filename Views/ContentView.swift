@@ -109,6 +109,7 @@ struct ContentView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu("Dev") {
                         Button("Reset Onboarding") { DevReset.resetOnboarding() }
+                        Button("Full Reset (First Run)") { DevReset.fullReset() }
                     }
                 }
                 #endif
@@ -512,3 +513,4 @@ private struct Chip: View {
 
 #Preview { ContentView() }
 #Preview { AtlasTabRoot() }
+

@@ -23,11 +23,12 @@ final class OnboardingViewModel: ObservableObject {
 
     enum PlanDecision { case recommended, custom }
 
-    // MARK: - Path control (prevents progress bar from jumping on selection)
+    // MARK: - Paths
     private let fullPath: [Step] = [.experience, .goal, .frequency, .reminder, .physique, .plan, .done]
-    private let beginnerPath: [Step] = [.experience, .frequency, .reminder, .done]
+    // Beginner path skips goal + physique, but DOES include plan choice.
+    private let beginnerPath: [Step] = [.experience, .frequency, .reminder, .plan, .done]
 
-    // We start with the full path. This will be swapped on Continue from .experience if Beginner is chosen.
+    // Start on full path; may swap after Experience.
     private var path: [Step] = [.experience, .goal, .frequency, .reminder, .physique, .plan, .done]
 
     // MARK: - Gating and progress
@@ -79,30 +80,29 @@ final class OnboardingViewModel: ObservableObject {
 
         switch step {
         case .experience:
-            // Freeze the path only AFTER the user taps Continue on Experience.
+            // Swap path based on experience. Beginners get the simplified path that still includes plan choice.
             if data.experience == .beginner {
-                // Beginner short path: Frequency → Reminder → Done
                 path = beginnerPath
-                // We’ll apply a recommended plan automatically at completion.
-                planDecision = .recommended
-                recommendedPlan = nil
             } else {
-                // Full path for non-beginner
                 path = fullPath
-                planDecision = nil
-                recommendedPlan = nil
             }
+            planDecision = nil
+            recommendedPlan = nil
             goToNextInPath()
 
         case .reminder:
-            if !path.contains(.plan) {
-                complete(applyRecommended: true)
-            } else {
+            // For beginners there is no Physique step; prepare recommended plan here before Plan step.
+            if path.contains(.plan) {
+                recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
+                planDecision = nil
                 goToNextInPath()
+            } else {
+                // Safety fallback (shouldn't happen with our defined paths)
+                complete(applyRecommended: true)
             }
 
         case .physique:
-            // Prepare a recommended plan before Plan step on the full path
+            // Full path: prepare recommended plan before Plan step.
             recommendedPlan = PlannerStore.shared.recommendedPlan(for: buildProfile())
             planDecision = nil
             goToNextInPath()
@@ -202,3 +202,4 @@ final class OnboardingViewModel: ObservableObject {
         )
     }
 }
+

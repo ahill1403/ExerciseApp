@@ -306,21 +306,9 @@ struct WorkoutSessionView: View {
                 if showSetManagerCard,
                    let workout = currentWorkoutDefinition,
                    let exercise = currentExerciseEntry {
-                    ManageSetsQuickCard(
-                        vm: vm,
-                        workout: workout,
-                        exercise: exercise,
-                        onSetCompleted: startRestTimer,
-                        onEdit: { index, set in
-                            editExerciseID = exercise.id
-                            editSetIndex = index
-                            editReps = set.reps
-                            editWeight = set.weight
-                            editUnits = set.units
-                            activeSheet = .editSet
-                        },
-                        onManage: { activeSheet = .manageSets }
-                    )
+                    ManageSetsQuickCard(workout: workout, exercise: exercise) {
+                        activeSheet = .manageSets
+                    }
                     .transition(.move(edge: .top).combined(with: .opacity))
                     .padding(.top, 8)
                 }
@@ -370,16 +358,8 @@ private struct LoggingPanel: View {
                 }
                 .padding(.top, 4)
                 
-                if !exercise.sets.isEmpty {
-                    Divider()
-                        .opacity(0.08)
-                        .padding(.vertical, 12)
-
-                    LoggedSetSummaryFooter(
-                        exercise: exercise,
-                        onManage: { activeSheet = .manageSets }
-                    )
-                }
+                // Intentionally no set list or review/manage button in the bottom logger.
+                // Sets are reviewed under the workouts section above.
                 
             } else if vm.todaysWorkouts.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
@@ -588,38 +568,30 @@ private struct AddSetInline: View {
     }
 }
 
-private struct LoggedSetList: View {
+private struct LoggedSetList: View { // unchanged, not used in the bottom logger anymore
     @ObservedObject var vm: StartWorkoutViewModel
     let exercise: ExerciseEntry
-    var showHeader: Bool = true
-    var showManageButton: Bool = true
     var onSetCompleted: () -> Void
     var onEdit: (Int, SetEntry) -> Void
     var onManage: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if showHeader || showManageButton {
-                HStack(spacing: 12) {
-                    if showHeader {
-                        Text("Logged Sets")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    if showManageButton {
-                        Button(action: onManage) {
-                            Label("Manage", systemImage: "slider.horizontal.3")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(AtlasTheme.accentGreen)
-                    }
+            HStack(spacing: 12) {
+                Text("Logged Sets")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                
+                Spacer()
+                
+                Button(action: onManage) {
+                    Label("Manage", systemImage: "slider.horizontal.3")
+                        .font(.caption)
                 }
+                .buttonStyle(.plain)
+                .foregroundStyle(AtlasTheme.accentGreen)
             }
-
+            
             VStack(spacing: 10) {
                 ForEach(Array(exercise.sets.enumerated()), id: \.element.id) { index, set in
                     LoggedSetRow(
@@ -651,51 +623,6 @@ private struct LoggedSetList: View {
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: exercise.sets)
         .animation(.spring(response: 0.32, dampingFraction: 0.82), value: vm.completedSetIDs)
-    }
-}
-
-private struct LoggedSetSummaryFooter: View {
-    let exercise: ExerciseEntry
-    var onManage: () -> Void
-
-    private var setSummary: String {
-        "\(exercise.sets.count) set\(exercise.sets.count == 1 ? "" : "s") logged"
-    }
-
-    private var bestSetDescription: String? {
-        guard let best = exercise.sets.max(by: { $0.weight < $1.weight }) else { return nil }
-        let repsText = "\(best.reps) reps"
-        let weightText: String
-        if best.weight.truncatingRemainder(dividingBy: 1) == 0 {
-            weightText = String(format: "%.0f %@", best.weight, best.units.rawValue)
-        } else {
-            weightText = String(format: "%.1f %@", best.weight, best.units.rawValue)
-        }
-        return "Top set: \(repsText) @ \(weightText)"
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(setSummary)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(AtlasTheme.accentGreen)
-
-                if let best = bestSetDescription {
-                    Text(best)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            Button(action: onManage) {
-                Label("Review logged sets", systemImage: "slider.horizontal.3")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-            }
-            .buttonStyle(AtlasButtonStyle())
-        }
     }
 }
 
@@ -737,16 +664,12 @@ private struct LoggedSetRow: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(AtlasTheme.gradient.opacity(0.22), in: Capsule())
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.35, dampingFraction: 0.86), value: set.reps)
                 
                 Text("\(formattedWeight) \(set.units.rawValue)")
                     .font(.caption.weight(.semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(AtlasTheme.gradient.opacity(0.16), in: Capsule())
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.35, dampingFraction: 0.86), value: formattedWeight)
                 
                 Spacer(minLength: 0)
             }
@@ -837,6 +760,10 @@ private struct CompactIntAdjuster: View {
     let range: ClosedRange<Int>
     var step: Int = 1
     
+    @State private var isEditingText = false
+    @State private var textBuffer = ""
+    @FocusState private var isFocused: Bool
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title.uppercased())
@@ -845,13 +772,42 @@ private struct CompactIntAdjuster: View {
             
             HStack(spacing: 0) {
                 StepButton(systemName: "minus") { value = max(range.lowerBound, value - step) }
-                Text("\(value)")
-                    .font(.headline.bold()) // compact size (was title3)
-                    .frame(minWidth: 42)    // compact width (was 54)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(AtlasTheme.textPrimary)
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.32, dampingFraction: 0.85), value: value)
+                
+                ZStack {
+                    if isEditingText {
+                        TextField("", text: $textBuffer)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.center)
+                            .font(.headline.bold())
+                            .monospacedDigit()
+                            .frame(minWidth: 42)
+                            .foregroundColor(AtlasTheme.textPrimary)
+                            .focused($isFocused)
+                            .onAppear {
+                                textBuffer = String(value)
+                                isFocused = true
+                            }
+                            .onSubmit(commit)
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Done") {
+                                        commit()
+                                        isFocused = false
+                                    }
+                                }
+                            }
+                    } else {
+                        Text("\(value)")
+                            .font(.headline.bold())
+                            .monospacedDigit()
+                            .frame(minWidth: 42)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(AtlasTheme.textPrimary)
+                            .onTapGesture { isEditingText = true }
+                    }
+                }
+                
                 StepButton(systemName: "plus") { value = min(range.upperBound, value + step) }
             }
             .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -861,12 +817,23 @@ private struct CompactIntAdjuster: View {
             )
         }
     }
+    
+    private func commit() {
+        if let intVal = Int(textBuffer) {
+            value = min(max(range.lowerBound, intVal), range.upperBound)
+        }
+        isEditingText = false
+    }
 }
 
 private struct CompactDoubleAdjuster: View {
     let title: String
     @Binding var value: Double
     var step: Double = 2.5
+    
+    @State private var isEditingText = false
+    @State private var textBuffer = ""
+    @FocusState private var isFocused: Bool
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -876,13 +843,47 @@ private struct CompactDoubleAdjuster: View {
             
             HStack(spacing: 0) {
                 StepButton(systemName: "minus") { value = max(0, value - step) }
-                Text(value.formatted(.number.precision(.fractionLength(0))))
-                    .font(.headline.bold()) // compact size (was title3)
-                    .frame(minWidth: 50)    // compact width (was 64)
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(AtlasTheme.textPrimary)
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.32, dampingFraction: 0.85), value: value)
+                
+                ZStack {
+                    if isEditingText {
+                        TextField("", text: $textBuffer)
+                            .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.center)
+                            .font(.headline.bold())
+                            .monospacedDigit()
+                            .frame(minWidth: 50)
+                            .foregroundColor(AtlasTheme.textPrimary)
+                            .focused($isFocused)
+                            .onAppear {
+                                // Preserve user-entered precision while editing
+                                if value.truncatingRemainder(dividingBy: 1) == 0 {
+                                    textBuffer = String(format: "%.0f", value)
+                                } else {
+                                    textBuffer = String(value)
+                                }
+                                isFocused = true
+                            }
+                            .onSubmit(commit)
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Done") {
+                                        commit()
+                                        isFocused = false
+                                    }
+                                }
+                            }
+                    } else {
+                        Text(displayValue)
+                            .font(.headline.bold())
+                            .monospacedDigit()
+                            .frame(minWidth: 50)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(AtlasTheme.textPrimary)
+                            .onTapGesture { isEditingText = true }
+                    }
+                }
+                
                 StepButton(systemName: "plus") { value += step }
             }
             .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -891,6 +892,22 @@ private struct CompactDoubleAdjuster: View {
                     .stroke(AtlasTheme.border, lineWidth: 1)
             )
         }
+    }
+    
+    private var displayValue: String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", value)
+        } else {
+            return String(format: "%.1f", value)
+        }
+    }
+    
+    private func commit() {
+        let sanitized = textBuffer.replacingOccurrences(of: ",", with: ".")
+        if let doubleVal = Double(sanitized) {
+            value = max(0, doubleVal)
+        }
+        isEditingText = false
     }
 }
 
@@ -918,14 +935,9 @@ private struct StepButton: View {
 }
 
 private struct ManageSetsQuickCard: View {
-    @ObservedObject var vm: StartWorkoutViewModel
     let workout: WorkoutDefinition
     let exercise: ExerciseEntry
-    var onSetCompleted: () -> Void
-    var onEdit: (Int, SetEntry) -> Void
-    var onManage: () -> Void
-
-    @State private var isExpanded = false
+    let onOpen: () -> Void
     
     private var setSummary: String {
         "\(exercise.sets.count) set\(exercise.sets.count == 1 ? "" : "s") logged"
@@ -968,7 +980,7 @@ private struct ManageSetsQuickCard: View {
                     }
                 }
             }
-
+            
             if !exercise.sets.isEmpty {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -980,50 +992,9 @@ private struct ManageSetsQuickCard: View {
                     .padding(.vertical, 2)
                 }
                 .animation(.easeInOut(duration: 0.25), value: exercise.sets)
-
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
-                        isExpanded.toggle()
-                    }
-                } label: {
-                    HStack(spacing: 10) {
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 14, weight: .semibold))
-                            .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                            .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
-
-                        Text("Logged Sets")
-                            .font(.caption.weight(.semibold))
-
-                        Spacer()
-
-                        Text("\(exercise.sets.count)")
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(AtlasTheme.gradient.opacity(0.12), in: Capsule())
-                    }
-                    .foregroundColor(AtlasTheme.textPrimary)
-                    .padding(.vertical, 4)
-                }
-                .buttonStyle(.plain)
-
-                if isExpanded {
-                    LoggedSetList(
-                        vm: vm,
-                        exercise: exercise,
-                        showHeader: false,
-                        showManageButton: false,
-                        onSetCompleted: onSetCompleted,
-                        onEdit: onEdit,
-                        onManage: onManage
-                    )
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .padding(.top, 4)
-                }
             }
-
-            Button(action: onManage) {
+            
+            Button(action: onOpen) {
                 Label("View / Edit Sets", systemImage: "slider.horizontal.3")
                     .font(.subheadline.weight(.semibold))
                     .frame(maxWidth: .infinity)
@@ -1036,13 +1007,6 @@ private struct ManageSetsQuickCard: View {
         .glassCard(cornerRadius: 24)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(setSummary) for \(exercise.name). Tap to view or edit sets.")
-        .onChange(of: exercise.sets.count) { count in
-            if count == 0 {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                    isExpanded = false
-                }
-            }
-        }
     }
 }
 
@@ -1286,3 +1250,4 @@ private extension AnyTransition {
 }
 
 #Preview("Dark")  { AtlasTabRoot().preferredColorScheme(.dark) }
+
