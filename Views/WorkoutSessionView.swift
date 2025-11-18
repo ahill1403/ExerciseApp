@@ -1205,7 +1205,7 @@ private struct RestTimerOverlay: View {
                         .font(.subheadline)
                         .foregroundStyle(isOvertime ? .red.opacity(0.8) : .secondary)
 
-                    Button("Skip Rest") {
+                    Button("Finish Rest") {
                         onCancel(max(0, Date().timeIntervalSince(startDate)))
                     }
                         .buttonStyle(AtlasButtonStyle())

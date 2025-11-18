@@ -72,7 +72,7 @@ enum ProgressMetric: CaseIterable, Identifiable {
         case .weight: return "Weight Lifted"
         case .reps: return "Reps Completed"
         case .duration: return "Duration"
-        case .avgRestTime: return "Avg. Rest Time"
+        case .avgRestTime: return "Rest Time"
         }
     }
 
@@ -107,7 +107,7 @@ enum ProgressMetric: CaseIterable, Identifiable {
         case .duration:
             return "Total \(ProgressMetric.numberFormatter.string(from: NSNumber(value: total)) ?? "0") min"
         case .avgRestTime:
-            return "Avg rest \(formattedValue(total))"
+            return "Avg rest per set \(formattedValue(total))"
         }
     }
 
