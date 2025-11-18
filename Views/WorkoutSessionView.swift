@@ -388,13 +388,6 @@ private struct ExerciseLoggingCard: View {
                 }
             }
 
-            Button(action: onManageSets) {
-                Label("View / Edit Sets", systemImage: "slider.horizontal.3")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-            }
-            .buttonStyle(AtlasButtonStyle())
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1106,13 +1099,6 @@ private struct ManageSetsQuickCard: View {
                 .animation(.easeInOut(duration: 0.25), value: exercise.sets)
             }
             
-            Button(action: onOpen) {
-                Label("View / Edit Sets", systemImage: "slider.horizontal.3")
-                    .font(.subheadline.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(AtlasButtonStyle())
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -1163,7 +1149,6 @@ private struct RestTimerOverlay: View {
     var onComplete: () -> Void
 
     @State private var completionDispatched = false
-    @State private var ringProgress: CGFloat = 0
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.016, paused: false)) { timeline in
@@ -1171,8 +1156,7 @@ private struct RestTimerOverlay: View {
             let secondsRemaining = max(0, Int(ceil(remaining)))
             let minutes = secondsRemaining / 60
             let seconds = secondsRemaining % 60
-            let progress = min(max(ringProgress, 0), 1)
-            let countdownStart = progress
+            let progress = max(0, min(1, remaining / duration))
             
             ZStack {
                 Color.black.opacity(0.45).ignoresSafeArea()
@@ -1189,12 +1173,13 @@ private struct RestTimerOverlay: View {
                         Circle()
                             .stroke(.white.opacity(0.08), lineWidth: 1.6)
                         Circle()
-                              .trim(from: countdownStart, to: 1)
-                              .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                              .rotationEffect(.degrees(-90))
-                              .foregroundStyle(AtlasTheme.gradient)
-                              .hueRotation(.degrees(progress * 90))
-                              .shadow(color: AtlasTheme.accentGreen.opacity(0.25), radius: 8, x: 0, y: 4)
+                            .trim(from: 0, to: progress)
+                            .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .foregroundStyle(AtlasTheme.gradient)
+                            .hueRotation(.degrees(progress * 90))
+                            .shadow(color: AtlasTheme.accentGreen.opacity(0.25), radius: 8, x: 0, y: 4)
+                            .animation(.linear(duration: 0.2), value: progress)
                       }
                       .frame(width: 200, height: 200)
                     

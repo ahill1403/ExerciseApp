@@ -429,7 +429,6 @@ private struct PlanChoiceStep: View {
                     .foregroundStyle(.secondary)
             } else {
                 WeekPlanGrid(plan: plan)
-                    .disabled(true)
             }
 
             VStack(spacing: 12) {
@@ -453,6 +452,11 @@ private struct PlanChoiceStep: View {
                 .foregroundStyle(.secondary)
         }
         .padding(16)
+        .onAppear {
+            if decision == nil {
+                decision = .recommended
+            }
+        }
     }
 }
 

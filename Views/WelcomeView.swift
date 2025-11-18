@@ -55,7 +55,20 @@ struct WelcomeView: View {
                         }
 
                     Button("Log in") { showLogin = true }
-                        .buttonStyle(AtlasButtonStyle(gradient: AtlasTheme.gradientAlt))
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(AtlasTheme.gradientAlt.opacity(0.16))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color.white.opacity(0.12))
+                        )
+                        .foregroundStyle(AtlasTheme.textPrimary)
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 6)
+                        .buttonStyle(.plain)
                 }
                 .padding(.horizontal, 24)
                 .padding(.bottom, 40)
