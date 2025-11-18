@@ -565,7 +565,7 @@ private struct LoggedSetSummaryRow: View {
         .background(AtlasTheme.cardFill.opacity(0.9), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .stroke(isCompleted ? AtlasTheme.accentGreen.opacity(0.6) : AtlasTheme.border, lineWidth: 1)
+                .stroke(isCompleted ? AnyShapeStyle(AtlasTheme.accentGreen.opacity(0.6)) : AnyShapeStyle(AtlasTheme.border), lineWidth: 1)
         )
     }
 
