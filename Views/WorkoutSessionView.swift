@@ -264,17 +264,18 @@ struct WorkoutSessionView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ForEach(Array(vm.todaysWorkouts.enumerated()), id: \.offset) { index, workout in
                         if let exercise = vm.exercise(for: workout.id) {
-                            ExerciseLoggingCard(
-                                workout: workout,
-                                exercise: exercise,
-                                targetSetCount: vm.targetSetCount(for: workout.id),
-                                isCurrent: index == vm.currentWorkoutIndex,
-                                isCompleted: vm.isCompleted(workout.id),
-                                isSetCompleted: { vm.isSetCompleted($0) },
-                                onSelect: {
-                                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                        vm.selectWorkout(with: workout.id)
-                                    }
+                                ExerciseLoggingCard(
+                                    workout: workout,
+                                    exercise: exercise,
+                                    targetSetCount: vm.targetSetCount(for: workout.id),
+                                    isCurrent: index == vm.currentWorkoutIndex,
+                                    isCompleted: vm.isCompleted(workout.id),
+                                    isReadyForCompletion: vm.isReadyForCompletion(workout.id),
+                                    isSetCompleted: { vm.isSetCompleted($0) },
+                                    onSelect: {
+                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                            vm.selectWorkout(with: workout.id)
+                                        }
                                 },
                                 onToggleComplete: {
                                     withAnimation(.easeInOut(duration: 0.25)) {
@@ -284,6 +285,7 @@ struct WorkoutSessionView: View {
                                 onLogSet: { reps, weight, units in
                                     _ = vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
                                     startRestTimer()
+                                    vm.finalizeReadyWorkout(workout.id)
                                 },
                                 onToggleSetCompletion: { setID in
                                     withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
@@ -292,6 +294,7 @@ struct WorkoutSessionView: View {
                                         }
                                         vm.toggleSetCompletion(for: setID)
                                     }
+                                    vm.finalizeReadyWorkout(workout.id)
                                 },
                                 onEditSet: { index, set in
                                     editExerciseID = exercise.id
@@ -339,6 +342,7 @@ private struct ExerciseLoggingCard: View {
     let targetSetCount: Int?
     let isCurrent: Bool
     let isCompleted: Bool
+    let isReadyForCompletion: Bool
     var isSetCompleted: (UUID) -> Bool
     var onSelect: () -> Void
     var onToggleComplete: () -> Void
@@ -348,7 +352,14 @@ private struct ExerciseLoggingCard: View {
     var onManageSets: () -> Void
 
     private var plannedRows: Int {
-        max(targetSetCount ?? 0, exercise.sets.count + 1)
+        if shouldShowInputRow {
+            return max(targetSetCount ?? 0, exercise.sets.count + 1)
+        }
+        return exercise.sets.count
+    }
+
+    private var shouldShowInputRow: Bool {
+        !(isCompleted || isReadyForCompletion)
     }
 
     var body: some View {
@@ -1157,8 +1168,9 @@ private struct RestTimerOverlay: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.016, paused: false)) { timeline in
             let remaining = max(0, endDate.timeIntervalSince(timeline.date))
-            let ratio = duration > 0 ? remaining / duration : 0
+            let ratio = duration > 0 ? min(1, max(0, remaining / duration)) : 0
             let progress = 1 - ratio
+            let countdownStart = CGFloat(max(0, 1 - ratio))
             let secondsRemaining = max(0, Int(ceil(remaining)))
             let minutes = secondsRemaining / 60
             let seconds = secondsRemaining % 60
@@ -1178,7 +1190,7 @@ private struct RestTimerOverlay: View {
                         Circle()
                             .stroke(.white.opacity(0.08), lineWidth: 1.6)
                         Circle()
-                            .trim(from: 0, to: CGFloat(max(0.001, ratio)))
+                            .trim(from: countdownStart, to: 1)
                             .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                             .foregroundStyle(AtlasTheme.gradient)

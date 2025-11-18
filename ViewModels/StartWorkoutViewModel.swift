@@ -307,6 +307,10 @@ final class StartWorkoutViewModel: ObservableObject {
         completedWorkoutIDs.contains(workoutID)
     }
 
+    func isReadyForCompletion(_ workoutID: String) -> Bool {
+        workoutsReadyForCompletion.contains(workoutID)
+    }
+
     func isPlannedExercise(_ id: UUID) -> Bool {
         workoutExerciseLookup.values.contains(id)
     }
