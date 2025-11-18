@@ -1161,18 +1161,18 @@ private struct RestTimerOverlay: View {
     let duration: TimeInterval
     var onCancel: () -> Void
     var onComplete: () -> Void
-    
+
     @State private var completionDispatched = false
-    
+    @State private var ringProgress: CGFloat = 0
+
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.016, paused: false)) { timeline in
             let remaining = max(0, endDate.timeIntervalSince(timeline.date))
-            let ratio = duration > 0 ? min(1, max(0, remaining / duration)) : 0
-            let progress = 1 - ratio
-            let countdownStart = CGFloat(max(0, 1 - ratio))
             let secondsRemaining = max(0, Int(ceil(remaining)))
             let minutes = secondsRemaining / 60
             let seconds = secondsRemaining % 60
+            let progress = min(max(ringProgress, 0), 1)
+            let countdownStart = progress
             
             ZStack {
                 Color.black.opacity(0.45).ignoresSafeArea()
@@ -1189,15 +1189,14 @@ private struct RestTimerOverlay: View {
                         Circle()
                             .stroke(.white.opacity(0.08), lineWidth: 1.6)
                         Circle()
-                            .trim(from: countdownStart, to: 1)
-                            .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                            .foregroundStyle(AtlasTheme.gradient)
-                            .hueRotation(.degrees(progress * 90))
-                            .shadow(color: AtlasTheme.accentGreen.opacity(0.25), radius: 8, x: 0, y: 4)
-                            .animation(.easeInOut(duration: 0.25), value: ratio)
-                    }
-                    .frame(width: 200, height: 200)
+                              .trim(from: countdownStart, to: 1)
+                              .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                              .rotationEffect(.degrees(-90))
+                              .foregroundStyle(AtlasTheme.gradient)
+                              .hueRotation(.degrees(progress * 90))
+                              .shadow(color: AtlasTheme.accentGreen.opacity(0.25), radius: 8, x: 0, y: 4)
+                      }
+                      .frame(width: 200, height: 200)
                     
                     Text(String(format: "%d:%02d", minutes, seconds))
                         .font(.system(size: 44, weight: .semibold, design: .rounded))

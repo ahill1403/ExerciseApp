@@ -16,11 +16,8 @@ struct StartWorkoutView: View {
     @State private var planSnapshot: WeeklyPlan = PlannerStore.shared.load()
     @State private var expandedTemplateID: StartWorkoutViewModel.TemplateInfo.ID?
     @State private var showAllTemplates = false
+    @State private var showTemplatePicker = false
 
-    private let templateColumns: [GridItem] = [
-        GridItem(.flexible(), spacing: 14),
-        GridItem(.flexible(), spacing: 14)
-    ]
     @State private var completionMessage: String?
 
     var body: some View {
@@ -85,6 +82,23 @@ struct StartWorkoutView: View {
                 presentCompletionMessage(message)
             }
         }
+        .sheet(isPresented: $showTemplatePicker) {
+            TemplatePickerSheet(
+                templates: vm.templates,
+                expandedTemplateID: $expandedTemplateID,
+                showAllTemplates: $showAllTemplates,
+                onStartTemplate: { name in
+                    vm.start(template: name)
+                    expandedTemplateID = nil
+                    showTemplatePicker = false
+                },
+                onStartCustom: {
+                    vm.start(template: "Custom")
+                    expandedTemplateID = nil
+                    showTemplatePicker = false
+                }
+            )
+        }
     }
 
     // MARK: - Home (pre-session) content
@@ -92,7 +106,6 @@ struct StartWorkoutView: View {
         ScrollView {
             VStack(spacing: 24) {
                 planRecommendationSection
-                templatesSection
                 emptySessionSection
             }
             .padding(20)
@@ -198,67 +211,6 @@ struct StartWorkoutView: View {
         .glassCard(cornerRadius: 22)
     }
 
-    private var templatesSection: some View {
-        VStack(alignment: .center, spacing: 12) {
-            Text("Choose a template")
-                .font(.title2.bold())
-                .gradientForeground()
-                .padding(.top, 15)
-
-            Text("Curated sessions you can start in one tap.")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .padding(.bottom, 2)
-
-            let templatesToShow = showAllTemplates ? vm.templates : Array(vm.templates.prefix(2))
-
-            LazyVGrid(columns: templateColumns, spacing: 14) {
-                ForEach(templatesToShow) { template in
-                    let isExpanded = expandedTemplateID == template.id
-                    TemplateCard(
-                        template: template,
-                        isExpanded: isExpanded,
-                        onToggle: {
-                            withAnimation(motion.micro) {
-                                expandedTemplateID = isExpanded ? nil : template.id
-                            }
-                        },
-                        onStart: {
-                            vm.start(template: template.name)
-                            expandedTemplateID = nil
-                        }
-                    )
-                }
-            }
-            .animation(motion.micro, value: expandedTemplateID)
-
-            if vm.templates.count > 2 {
-                Button {
-                    withAnimation(motion.micro) { showAllTemplates.toggle() }
-                } label: {
-                    HStack(spacing: 8) {
-                        Text(showAllTemplates ? "Show fewer" : "More templates")
-                            .font(.subheadline.weight(.semibold))
-                        Image(systemName: showAllTemplates ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                }
-                .buttonStyle(.plain)
-                .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(AtlasTheme.cardFill)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(AtlasTheme.border, lineWidth: 1)
-                )
-            }
-        }
-        .glassCard(cornerRadius: 22)
-    }
-
     private var emptySessionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Prefer to freestyle?")
@@ -270,8 +222,7 @@ struct StartWorkoutView: View {
                 .foregroundColor(.secondary)
 
             Button("Start Empty Session") {
-                vm.start(template: "Custom")
-                expandedTemplateID = nil
+                showTemplatePicker = true
             }
             .buttonStyle(AtlasButtonStyle())
         }
@@ -295,6 +246,112 @@ private extension StartWorkoutView {
                 completionMessage = nil
             }
             vm.lastCompletionMessage = nil
+        }
+    }
+}
+
+// MARK: - Template picker
+
+private struct TemplatePickerSheet: View {
+    let templates: [StartWorkoutViewModel.TemplateInfo]
+    @Binding var expandedTemplateID: StartWorkoutViewModel.TemplateInfo.ID?
+    @Binding var showAllTemplates: Bool
+    var onStartTemplate: (String) -> Void
+    var onStartCustom: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private let templateColumns: [GridItem] = [
+        GridItem(.flexible(), spacing: 14),
+        GridItem(.flexible(), spacing: 14)
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Build your session from scratch or start from a template.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    Button {
+                        onStartCustom()
+                        dismiss()
+                    } label: {
+                        Label("Build your own workout", systemImage: "square.and.pencil")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(AtlasButtonStyle())
+
+                    Divider()
+                        .padding(.vertical, 4)
+
+                    Text("Choose a template")
+                        .font(.title2.bold())
+                        .gradientForeground()
+
+                    Text("Use one of our curated plans as a starting point, then edit anything you like.")
+                        .font(.footnote)
+                        .foregroundColor(.secondary)
+
+                    let templatesToShow = showAllTemplates ? templates : Array(templates.prefix(2))
+
+                    LazyVGrid(columns: templateColumns, spacing: 14) {
+                        ForEach(templatesToShow) { template in
+                            let isExpanded = expandedTemplateID == template.id
+                            TemplateCard(
+                                template: template,
+                                isExpanded: isExpanded,
+                                onToggle: {
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                                        expandedTemplateID = isExpanded ? nil : template.id
+                                    }
+                                },
+                                onStart: {
+                                    onStartTemplate(template.name)
+                                    dismiss()
+                                }
+                            )
+                        }
+                    }
+
+                    if templates.count > 2 {
+                        Button {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
+                                showAllTemplates.toggle()
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Text(showAllTemplates ? "Show fewer" : "More templates")
+                                    .font(.subheadline.weight(.semibold))
+                                Image(systemName: showAllTemplates ? "chevron.up" : "chevron.down")
+                                    .font(.system(size: 13, weight: .semibold))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(AtlasTheme.cardFill)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(AtlasTheme.border, lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("Start Empty Session")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+        }
+        .onAppear {
+            expandedTemplateID = nil
+            showAllTemplates = false
         }
     }
 }
