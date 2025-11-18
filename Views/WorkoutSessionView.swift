@@ -60,7 +60,6 @@ struct WorkoutSessionView: View {
             }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if vm.isLogging {
-                    Button("Autofill last") { vm.autofillFromLast() }
                     Button("Finish") { showFinishAlert = true }
                 }
             }
@@ -78,17 +77,17 @@ struct WorkoutSessionView: View {
         .onAppear {
             showSetManagerCard = (currentExerciseEntry?.sets.isEmpty == false)
         }
-        .onChange(of: currentExerciseEntry?.id) { _ in
+        .onChange(of: currentExerciseEntry?.id) { _, _ in
             withAnimation(setCardAnimation) {
                 showSetManagerCard = (currentExerciseEntry?.sets.isEmpty == false)
             }
         }
-        .onChange(of: currentExerciseEntry?.sets.count ?? 0) { newValue in
+        .onChange(of: currentExerciseEntry?.sets.count ?? 0) { _, newValue in
             withAnimation(setCardAnimation) {
                 showSetManagerCard = newValue > 0
             }
         }
-        .onChange(of: vm.isLogging) { isLogging in
+        .onChange(of: vm.isLogging) { _, isLogging in
             if !isLogging {
                 restEndDate = nil
             }
@@ -1219,36 +1218,15 @@ private struct RestTimerOverlay: View {
                 .padding(.horizontal, 24)
             }
             .transition(.opacity)
-            .onChange(of: secondsRemaining) { newValue in
+            .onChange(of: secondsRemaining) { _, newValue in
                 if newValue == 0, !completionDispatched {
                     completionDispatched = true
                     onComplete()
                 }
             }
         }
-        .onAppear {
-            completionDispatched = false
-            syncRingAnimation()
-        }
-        .onChange(of: endDate) { _ in
-            completionDispatched = false
-            syncRingAnimation()
-        }
-    }
-
-    private func syncRingAnimation(from referenceDate: Date = Date()) {
-        guard duration > 0 else {
-            ringProgress = 1
-            return
-        }
-
-        let remaining = max(0, endDate.timeIntervalSince(referenceDate))
-        let elapsed = max(0, duration - remaining)
-        ringProgress = min(1, elapsed / duration)
-
-        withAnimation(.linear(duration: remaining)) {
-            ringProgress = 1
-        }
+        .onAppear { completionDispatched = false }
+        .onChange(of: endDate) { _, _ in completionDispatched = false }
     }
 }
 
@@ -1384,4 +1362,3 @@ private extension AnyTransition {
 }
 
 #Preview("Dark")  { AtlasTabRoot().preferredColorScheme(.dark) }
-
