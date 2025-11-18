@@ -62,6 +62,7 @@ enum ProgressMetric: CaseIterable, Identifiable {
     case weight
     case reps
     case duration
+    case avgRestTime
 
     var id: Self { self }
 
@@ -71,6 +72,7 @@ enum ProgressMetric: CaseIterable, Identifiable {
         case .weight: return "Weight Lifted"
         case .reps: return "Reps Completed"
         case .duration: return "Duration"
+        case .avgRestTime: return "Avg. Rest Time"
         }
     }
 
@@ -80,6 +82,7 @@ enum ProgressMetric: CaseIterable, Identifiable {
         case .weight: return "dumbbell"
         case .reps: return "repeat"
         case .duration: return "clock"
+        case .avgRestTime: return "lungs.fill"
         }
     }
 
@@ -89,6 +92,7 @@ enum ProgressMetric: CaseIterable, Identifiable {
         case .weight: return "Weight (\(units.rawValue))"
         case .reps: return "Reps"
         case .duration: return "Minutes"
+        case .avgRestTime: return "Avg Rest (sec)"
         }
     }
 
@@ -102,6 +106,8 @@ enum ProgressMetric: CaseIterable, Identifiable {
             return "Total \(Int(total.rounded())) reps"
         case .duration:
             return "Total \(ProgressMetric.numberFormatter.string(from: NSNumber(value: total)) ?? "0") min"
+        case .avgRestTime:
+            return "Avg rest \(formattedValue(total))"
         }
     }
 
@@ -111,6 +117,8 @@ enum ProgressMetric: CaseIterable, Identifiable {
             return String(Int(value.rounded()))
         case .weight, .duration:
             return ProgressMetric.numberFormatter.string(from: NSNumber(value: value)) ?? "0"
+        case .avgRestTime:
+            return ProgressMetric.restFormatter.string(from: value) ?? "0s"
         }
     }
 
@@ -119,6 +127,14 @@ enum ProgressMetric: CaseIterable, Identifiable {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 1
         formatter.minimumFractionDigits = 0
+        return formatter
+    }()
+
+    private static let restFormatter: DateComponentsFormatter = {
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.minute, .second]
+        formatter.unitsStyle = .positional
+        formatter.zeroFormattingBehavior = [.pad]
         return formatter
     }()
 }
@@ -188,6 +204,11 @@ final class ProgressViewModel: ObservableObject {
         case .duration:
             let totalSeconds = sessions.reduce(0) { $0 + ( $1.duration ?? 0 ) }
             return totalSeconds / 60
+        case .avgRestTime:
+            let averages = sessions.compactMap { $0.averageRestDuration }
+            guard !averages.isEmpty else { return 0 }
+            let total = averages.reduce(0, +)
+            return total / Double(averages.count)
         }
     }
 

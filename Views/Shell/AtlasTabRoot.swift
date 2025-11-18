@@ -25,7 +25,7 @@ private struct TabSpec {
 }
 
 private let tabSpecs: [TabSpec] = [
-    .init(tab: .workout,  systemImage: "dumbbell.fill",  accessibilityLabel: "Start Workout"),
+    .init(tab: .workout,  systemImage: "flag.checkered",  accessibilityLabel: "Start Workout"),
     .init(tab: .planner,  systemImage: "calendar",        accessibilityLabel: "Weekly Planner"),
     .init(tab: .home,     systemImage: "house.fill",      accessibilityLabel: "Home"),
     .init(tab: .insights, systemImage: "chart.bar.xaxis", accessibilityLabel: "Progress"),

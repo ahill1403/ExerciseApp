@@ -171,7 +171,13 @@ private struct ProgressMetricCard: View {
     }
 
     private var totalValue: Double {
-        data.reduce(0) { $0 + $1.value }
+        guard metric == .avgRestTime else {
+            return data.reduce(0) { $0 + $1.value }
+        }
+
+        guard !data.isEmpty else { return 0 }
+        let total = data.reduce(0) { $0 + $1.value }
+        return total / Double(data.count)
     }
 
     var body: some View {

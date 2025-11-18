@@ -16,6 +16,7 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published var workoutsReadyForCompletion: Set<String> = []
     @Published var lastCompletionMessage: String?
     @Published var completedSetIDs: Set<UUID> = []
+    @Published private(set) var restDurations: [TimeInterval] = []
 
     // Sheets
     @Published var showAddExercise = false
@@ -125,6 +126,7 @@ final class StartWorkoutViewModel: ObservableObject {
         completedWorkoutIDs = []
         completedSetIDs = []
         workoutsReadyForCompletion = []
+        restDurations = []
         currentWorkoutIndex = 0
         setTargetCache = [:]
 
@@ -216,6 +218,7 @@ final class StartWorkoutViewModel: ObservableObject {
         exercises = l.exercises
         completedSetIDs = []
         workoutsReadyForCompletion = []
+        restDurations = []
         setTargetCache = [:]
         bindExercisesToWorkouts()
     }
@@ -223,7 +226,7 @@ final class StartWorkoutViewModel: ObservableObject {
     func finish() {
         guard let template = selectedTemplate else { return }
         let duration = startTime.map { Date().timeIntervalSince($0) }
-        let session = WorkoutSession(date: Date(), template: template, exercises: exercises, duration: duration)
+        let session = WorkoutSession(date: Date(), template: template, exercises: exercises, duration: duration, restDurations: restDurations)
         WorkoutStore.shared.add(session)
         
         // Optional, fire-and-forget HealthKit save (inline so we don't depend on HealthKitManager).
@@ -264,11 +267,17 @@ final class StartWorkoutViewModel: ObservableObject {
         workoutExerciseLookup = [:]
         completedSetIDs = []
         workoutsReadyForCompletion = []
+        restDurations = []
         setTargetCache = [:]
         refreshPlanSuggestion()
         if clearCompletionMessage {
             lastCompletionMessage = nil
         }
+    }
+
+    func recordRestDuration(_ duration: TimeInterval) {
+        guard duration > 0 else { return }
+        restDurations.append(duration)
     }
 
     func selectWorkout(with id: String) {

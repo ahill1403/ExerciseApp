@@ -37,6 +37,7 @@ struct WorkoutSessionView: View {
     @State private var showFinishAlert = false
     @State private var showSetManagerCard = false
     @State private var restEndDate: Date? = nil
+    @State private var restStartDate: Date? = nil
     
     private let setCardAnimation = Animation.spring(response: 0.32, dampingFraction: 0.82)
     private let defaultRestDuration: TimeInterval = 90
@@ -90,23 +91,24 @@ struct WorkoutSessionView: View {
         .onChange(of: vm.isLogging) { _, isLogging in
             if !isLogging {
                 restEndDate = nil
+                restStartDate = nil
             }
         }
         .overlay {
-            if let endDate = restEndDate {
+            if let endDate = restEndDate, let startDate = restStartDate {
                 RestTimerOverlay(
+                    startDate: startDate,
                     endDate: endDate,
                     duration: defaultRestDuration,
-                    onCancel: {
+                    onCancel: { elapsed in
                         withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
                             restEndDate = nil
+                            restStartDate = nil
                         }
+                        vm.recordRestDuration(elapsed)
                     },
-                    onComplete: {
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.8)) {
-                            restEndDate = nil
-                        }
-                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    onReachedZero: {
+                        UINotificationFeedbackGenerator().notificationOccurred(.warning)
                     }
                 )
                 .transition(.opacity.combined(with: .scale))
@@ -128,7 +130,9 @@ struct WorkoutSessionView: View {
     
     private func startRestTimer() {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
-            restEndDate = Date().addingTimeInterval(defaultRestDuration)
+            let startDate = Date()
+            restStartDate = startDate
+            restEndDate = startDate.addingTimeInterval(defaultRestDuration)
         }
     }
     
@@ -1143,21 +1147,24 @@ private struct SetSnapshotCapsule: View {
 }
 
 private struct RestTimerOverlay: View {
+    let startDate: Date
     let endDate: Date
     let duration: TimeInterval
-    var onCancel: () -> Void
-    var onComplete: () -> Void
+    var onCancel: (_ elapsed: TimeInterval) -> Void
+    var onReachedZero: () -> Void
 
     @State private var completionDispatched = false
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.016, paused: false)) { timeline in
-            let remaining = max(0, endDate.timeIntervalSince(timeline.date))
-            let secondsRemaining = max(0, Int(ceil(remaining)))
+            let remaining = endDate.timeIntervalSince(timeline.date)
+            let isOvertime = remaining <= 0
+            let displayedTime = abs(remaining)
+            let secondsRemaining = Int(ceil(displayedTime))
             let minutes = secondsRemaining / 60
             let seconds = secondsRemaining % 60
             let progress = max(0, min(1, remaining / duration))
-            
+
             ZStack {
                 Color.black.opacity(0.45).ignoresSafeArea()
                 BreathingBackground()
@@ -1176,25 +1183,31 @@ private struct RestTimerOverlay: View {
                             .trim(from: 0, to: progress)
                             .stroke(style: StrokeStyle(lineWidth: 12, lineCap: .round))
                             .rotationEffect(.degrees(-90))
-                            .foregroundStyle(AtlasTheme.gradient)
-                            .hueRotation(.degrees(progress * 90))
-                            .shadow(color: AtlasTheme.accentGreen.opacity(0.25), radius: 8, x: 0, y: 4)
+                            .foregroundStyle(timerStroke(forOvertime: isOvertime))
+                            .shadow(
+                                color: (isOvertime ? Color.red : AtlasTheme.accentGreen).opacity(0.25),
+                                radius: 8,
+                                x: 0,
+                                y: 4
+                            )
                             .animation(.linear(duration: 0.2), value: progress)
                       }
                       .frame(width: 200, height: 200)
-                    
-                    Text(String(format: "%d:%02d", minutes, seconds))
+
+                    Text("\(isOvertime ? "-" : "")\(minutes):\(String(format: "%02d", seconds))")
                         .font(.system(size: 44, weight: .semibold, design: .rounded))
                         .monospacedDigit()
-                        .foregroundColor(AtlasTheme.textPrimary)
+                        .foregroundColor(isOvertime ? .red : AtlasTheme.textPrimary)
                         .contentTransition(.numericText())
                         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: secondsRemaining)
-                    
-                    Text(progress < 0.7 ? "Breathe deep — stay loose" : "Almost time to move")
+
+                    Text(isOvertime ? "Rest window passed — let's move" : (progress < 0.7 ? "Breathe deep — stay loose" : "Almost time to move"))
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    
-                    Button("Skip Rest", action: onCancel)
+                        .foregroundStyle(isOvertime ? .red.opacity(0.8) : .secondary)
+
+                    Button("Skip Rest") {
+                        onCancel(max(0, Date().timeIntervalSince(startDate)))
+                    }
                         .buttonStyle(AtlasButtonStyle())
                 }
                 .padding(32)
@@ -1203,15 +1216,22 @@ private struct RestTimerOverlay: View {
                 .padding(.horizontal, 24)
             }
             .transition(.opacity)
-            .onChange(of: secondsRemaining) { _, newValue in
-                if newValue == 0, !completionDispatched {
+            .onChange(of: isOvertime) { _, newValue in
+                if newValue, !completionDispatched {
                     completionDispatched = true
-                    onComplete()
+                    onReachedZero()
                 }
             }
         }
         .onAppear { completionDispatched = false }
         .onChange(of: endDate) { _, _ in completionDispatched = false }
+    }
+
+    private func timerStroke(forOvertime isOvertime: Bool) -> some ShapeStyle {
+        if isOvertime {
+            return LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+        return AtlasTheme.gradient
     }
 }
 
@@ -1223,18 +1243,18 @@ private struct BreathingBackground: View {
             Circle()
                 .fill(AtlasTheme.gradient)
                 .frame(width: 420, height: 420)
-                .scaleEffect(breathe ? 1.08 : 0.94)
-                .blur(radius: breathe ? 36 : 18)
-                .opacity(0.38)
-            
+                .scaleEffect(breathe ? 1.14 : 0.9)
+                .blur(radius: breathe ? 44 : 16)
+                .opacity(0.42)
+
             Circle()
                 .fill(AtlasTheme.gradientAlt)
                 .frame(width: 260, height: 260)
-                .scaleEffect(breathe ? 0.92 : 1.05)
-                .blur(radius: breathe ? 28 : 14)
-                .opacity(0.32)
+                .scaleEffect(breathe ? 0.88 : 1.12)
+                .blur(radius: breathe ? 34 : 12)
+                .opacity(0.36)
         }
-        .animation(.easeInOut(duration: 4.5).repeatForever(autoreverses: true), value: breathe)
+        .animation(.easeInOut(duration: 3.6).repeatForever(autoreverses: true), value: breathe)
         .onAppear { breathe = true }
         .allowsHitTesting(false)
     }
