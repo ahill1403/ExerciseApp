@@ -42,19 +42,14 @@ struct WorkoutSessionView: View {
     private let defaultRestDuration: TimeInterval = 90
     
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    sessionHeader
-                    todaysPlanSection
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 160)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 24) {
+                sessionHeader
+                todaysPlanSection
             }
-            
-            loggingPanelView
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+            .padding(.bottom, 80)
         }
         .ignoresSafeArea(edges: .bottom)
         .toolbar {
@@ -119,22 +114,6 @@ struct WorkoutSessionView: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.86), value: restEndDate)
-    }
-    
-    // MARK: - Extracted panel (helps the type-checker)
-    private var loggingPanelView: some View {
-        LoggingPanel(
-            vm: vm,
-            currentWorkoutDefinition: currentWorkoutDefinition,
-            currentExerciseEntry: currentExerciseEntry,
-            editExerciseID: $editExerciseID,
-            editSetIndex: $editSetIndex,
-            editReps: $editReps,
-            editWeight: $editWeight,
-            editUnits: $editUnits,
-            activeSheet: $activeSheet,
-            onSetCompleted: { startRestTimer() }
-        )
     }
     
     // MARK: - Current selections
@@ -282,32 +261,62 @@ struct WorkoutSessionView: View {
                     .buttonStyle(.plain)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 16) {
                     ForEach(Array(vm.todaysWorkouts.enumerated()), id: \.offset) { index, workout in
-                        WorkoutProgressRow(
-                            workout: workout,
-                            isCurrent: index == vm.currentWorkoutIndex,
-                            isCompleted: vm.isCompleted(workout.id),
-                            onSelect: {
-                                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        if let exercise = vm.exercise(for: workout.id) {
+                            ExerciseLoggingCard(
+                                workout: workout,
+                                exercise: exercise,
+                                targetSetCount: vm.targetSetCount(for: workout.id),
+                                isCurrent: index == vm.currentWorkoutIndex,
+                                isCompleted: vm.isCompleted(workout.id),
+                                isSetCompleted: { vm.isSetCompleted($0) },
+                                onSelect: {
+                                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                        vm.selectWorkout(with: workout.id)
+                                    }
+                                },
+                                onToggleComplete: {
+                                    withAnimation(.easeInOut(duration: 0.25)) {
+                                        vm.toggleCompletion(for: workout.id)
+                                    }
+                                },
+                                onLogSet: { reps, weight, units in
+                                    _ = vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
+                                    startRestTimer()
+                                },
+                                onToggleSetCompletion: { setID in
+                                    withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
+                                        if !vm.isSetCompleted(setID) {
+                                            startRestTimer()
+                                        }
+                                        vm.toggleSetCompletion(for: setID)
+                                    }
+                                },
+                                onEditSet: { index, set in
+                                    editExerciseID = exercise.id
+                                    editSetIndex = index
+                                    editReps = set.reps
+                                    editWeight = set.weight
+                                    editUnits = set.units
                                     vm.selectWorkout(with: workout.id)
+                                    activeSheet = .editSet
+                                },
+                                onManageSets: {
+                                    vm.selectWorkout(with: workout.id)
+                                    activeSheet = .manageSets
                                 }
-                            },
-                            onToggleComplete: {
-                                withAnimation(.easeInOut(duration: 0.25)) {
-                                    vm.toggleCompletion(for: workout.id)
-                                }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
                 .animation(.spring(response: 0.32, dampingFraction: 0.84), value: vm.todaysWorkouts)
                 .animation(.spring(response: 0.32, dampingFraction: 0.84), value: vm.currentWorkoutIndex)
-                
-                Text("Tap a card to focus logging on that workout. Check it off once you've completed the sets.")
+
+                Text("Log reps and weight within each card. Mark sets complete as you go to keep momentum.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
-                
+
                 if showSetManagerCard,
                    let workout = currentWorkoutDefinition,
                    let exercise = currentExerciseEntry {
@@ -324,106 +333,250 @@ struct WorkoutSessionView: View {
     }
 }
 
-// MARK: - Logging panel + controls
+private struct ExerciseLoggingCard: View {
+    let workout: WorkoutDefinition
+    let exercise: ExerciseEntry
+    let targetSetCount: Int?
+    let isCurrent: Bool
+    let isCompleted: Bool
+    var isSetCompleted: (UUID) -> Bool
+    var onSelect: () -> Void
+    var onToggleComplete: () -> Void
+    var onLogSet: (_ reps: Int, _ weight: Double, _ units: Units) -> Void
+    var onToggleSetCompletion: (_ setID: UUID) -> Void
+    var onEditSet: (Int, SetEntry) -> Void
+    var onManageSets: () -> Void
 
-private struct LoggingPanel: View {
-    @ObservedObject var vm: StartWorkoutViewModel
-    let currentWorkoutDefinition: WorkoutDefinition?
-    let currentExerciseEntry: ExerciseEntry?
-    
-    @Binding var editExerciseID: UUID?
-    @Binding var editSetIndex: Int?
-    @Binding var editReps: Int
-    @Binding var editWeight: Double
-    @Binding var editUnits: Units
-    @Binding var activeSheet: ActiveSheet?
-    var onSetCompleted: () -> Void
-    
+    private var plannedRows: Int {
+        max(targetSetCount ?? 0, exercise.sets.count + 1)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Capsule()
-                .fill(Color.white.opacity(0.3))
-                .frame(width: 40, height: 5)
-                .frame(maxWidth: .infinity)
-            
-            if let workout = currentWorkoutDefinition,
-               let exercise = currentExerciseEntry {
-                header(workout: workout)
-                
-                if exercise.sets.isEmpty {
-                    Text("No sets yet. Use the controls below to log your first set.")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 14) {
+            header
+
+            Divider().opacity(0.08)
+
+            VStack(spacing: 12) {
+                ForEach(0..<plannedRows, id: \.self) { index in
+                    if index < exercise.sets.count {
+                        let set = exercise.sets[index]
+                        LoggedSetSummaryRow(
+                            index: index,
+                            set: set,
+                            isCompleted: isSetCompleted(set.id),
+                            onToggleComplete: { onToggleSetCompletion(set.id) },
+                            onEdit: { onEditSet(index, set) }
+                        )
+                    } else {
+                        SetInputRow(
+                            index: index,
+                            previousSet: exercise.sets.last,
+                            onLog: onLogSet
+                        )
+                    }
                 }
-                
-                Divider().opacity(0.08)
-                
-                AddSetInline { reps, weight, units in
-                    vm.addSet(to: exercise.id, reps: reps, weight: weight, units: units)
-                }
-                .padding(.top, 4)
-                
-                // Intentionally no set list or review/manage button in the bottom logger.
-                // Sets are reviewed under the workouts section above.
-                
-            } else if vm.todaysWorkouts.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Ready when you are")
+            }
+
+            Button(action: onManageSets) {
+                Label("View / Edit Sets", systemImage: "slider.horizontal.3")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+            }
+            .buttonStyle(AtlasButtonStyle())
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(cardFill)
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(cardStroke, lineWidth: isCurrent ? 1.2 : 1))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+    }
+
+    private var cardFill: some ShapeStyle {
+        isCurrent
+        ? AnyShapeStyle(AtlasTheme.gradient.opacity(0.18))
+        : AnyShapeStyle(AtlasTheme.cardFill)
+    }
+
+    private var cardStroke: some ShapeStyle {
+        isCurrent
+        ? AnyShapeStyle(AtlasTheme.gradient)
+        : AnyShapeStyle(AtlasTheme.border)
+    }
+
+    @ViewBuilder
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(workout.name)
                         .font(.headline)
                         .foregroundColor(AtlasTheme.textPrimary)
-                    Text("Add a movement above to start tracking reps, sets and load.")
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                    Spacer()
+                    if isCompleted {
+                        Text("Done")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(AtlasTheme.accentGreen)
+                    }
                 }
-            } else {
-                Text("Select a workout above to begin logging reps, sets and weight.")
+
+                HStack(spacing: 8) {
+                    Text(workout.area.displayName)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(AtlasTheme.gradient.opacity(0.18), in: Capsule())
+                    Text(workout.equipment)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    Spacer(minLength: 0)
+                }
+
+                Text(workout.summary)
                     .font(.footnote)
                     .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            
-            if !vm.todaysWorkouts.isEmpty { Divider().opacity(0.08) }
+
+            Button(action: onToggleComplete) {
+                Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                    .font(.title2.weight(.semibold))
+                    .foregroundColor(isCompleted ? AtlasTheme.accentGreen : .secondary)
+            }
+            .buttonStyle(.plain)
         }
-        .padding(.top, 4)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            UnevenRoundedRectangle(
-                cornerRadii: .init(topLeading: 28, bottomLeading: 0, bottomTrailing: 0, topTrailing: 28)
-            )
-            .fill(AtlasTheme.bgElevated.opacity(0.96))
-        )
-        .overlay(
-            UnevenRoundedRectangle(
-                cornerRadii: .init(topLeading: 28, bottomLeading: 0, bottomTrailing: 0, topTrailing: 28)
-            )
-            .stroke(AtlasTheme.border, lineWidth: 1)
-        )
-        .overlay(alignment: .top) {
-            Rectangle()
-                .fill(Color.white.opacity(0.08))
-                .frame(height: 1)
-                .padding(.horizontal, 12)
-        }
-        .shadow(color: Color.black.opacity(0.12), radius: 10, x: 0, y: -2)
-        .ignoresSafeArea(edges: .bottom)
     }
-    
-    @ViewBuilder
-    private func header(workout: WorkoutDefinition) -> some View {
+}
+
+private struct SetInputRow: View {
+    let index: Int
+    let previousSet: SetEntry?
+    var onLog: (_ reps: Int, _ weight: Double, _ units: Units) -> Void
+
+    @State private var reps: Int
+    @State private var weight: Double
+    @State private var units: Units
+    @State private var isConfirming = false
+
+    init(index: Int, previousSet: SetEntry?, onLog: @escaping (_ reps: Int, _ weight: Double, _ units: Units) -> Void) {
+        self.index = index
+        self.previousSet = previousSet
+        self.onLog = onLog
+        _reps = State(initialValue: previousSet?.reps ?? 8)
+        _weight = State(initialValue: previousSet?.weight ?? 100)
+        _units = State(initialValue: previousSet?.units ?? .lbs)
+    }
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Spacer(minLength: 0)
-                if vm.completedWorkoutIDs.contains(workout.id) {
-                    Label("Completed", systemImage: "checkmark.circle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(AtlasTheme.accentGreen)
+            HStack(alignment: .center) {
+                Text("Set \(index + 1)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AtlasTheme.textPrimary)
+                Spacer()
+                logButton
+            }
+
+            HStack(spacing: 12) {
+                CompactIntAdjuster(title: "Reps", value: $reps, range: 1...100)
+                CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
+                    .frame(maxWidth: 150)
+            }
+        }
+        .padding(12)
+        .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+    }
+
+    private var logButton: some View {
+        Button {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
+                isConfirming = true
+            }
+            onLog(reps, weight, units)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    isConfirming = false
                 }
             }
-            Text(workout.area.displayName)
-                .font(.caption.weight(.semibold))
-                .foregroundColor(.secondary)
+        } label: {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 26, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(8)
+                .background(
+                    Circle()
+                        .fill(AtlasTheme.gradient)
+                        .shadow(color: AtlasTheme.accentGreen.opacity(0.24), radius: 6, x: 0, y: 3)
+                )
+                .scaleEffect(isConfirming ? 0.9 : 1.0)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Log set \(index + 1)")
+    }
+}
+
+private struct LoggedSetSummaryRow: View {
+    let index: Int
+    let set: SetEntry
+    let isCompleted: Bool
+    var onToggleComplete: () -> Void
+    var onEdit: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center) {
+                Text("Set \(index + 1)")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(AtlasTheme.textPrimary)
+                Spacer()
+                Button(action: onToggleComplete) {
+                    Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundColor(isCompleted ? AtlasTheme.accentGreen : .secondary)
+                }
+                .buttonStyle(.plain)
+                Button(action: onEdit) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 10) {
+                Text("\(set.reps) reps")
+                    .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(AtlasTheme.gradient.opacity(0.22), in: Capsule())
+                Text(weightText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(12)
+        .background(AtlasTheme.cardFill.opacity(0.9), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(isCompleted ? AtlasTheme.accentGreen.opacity(0.6) : AtlasTheme.border, lineWidth: 1)
+        )
+    }
+
+    private var weightText: String {
+        let weightValue: String
+        if set.weight.truncatingRemainder(dividingBy: 1) == 0 {
+            weightValue = String(format: "%.0f", set.weight)
+        } else {
+            weightValue = String(format: "%.1f", set.weight)
+        }
+        return "\(weightValue) \(set.units.rawValue)"
     }
 }
 
@@ -471,7 +624,7 @@ private struct ManageSetsSheet: View {
                     }
                     
                     if exercise.sets.isEmpty {
-                        Text("No sets logged yet — add one from the logger below.")
+                        Text("No sets logged yet — add one from the exercise card below.")
                             .font(.footnote)
                             .foregroundColor(.secondary)
                     } else {
@@ -516,62 +669,6 @@ private struct ManageSetsSheet: View {
 }
 
 // MARK: - Controls (adjusters)
-
-private struct AddSetInline: View {
-    @State private var reps: Int = 8
-    @State private var weight: Double = 100
-    @State private var units: Units = .lbs
-    @State private var isConfirming = false
-    var onAdd: (_ reps: Int, _ weight: Double, _ units: Units) -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .bottom, spacing: 12) {
-                    CompactIntAdjuster(title: "Reps", value: $reps, range: 1...100)
-                    CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
-                        .frame(width: 140)
-                    logButton
-                }
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        CompactIntAdjuster(title: "Reps", value: $reps, range: 1...100)
-                        CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
-                    }
-                    HStack(spacing: 12) { logButton }
-                }
-            }
-        }
-    }
-    
-    private var logButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
-                isConfirming = true
-            }
-            onAdd(reps, weight, units)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    isConfirming = false
-                }
-            }
-        } label: {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 28, weight: .bold))
-                .foregroundStyle(.white)
-                .padding(10)
-                .background(
-                    Circle()
-                        .fill(AtlasTheme.gradient)
-                        .shadow(color: AtlasTheme.accentGreen.opacity(0.24), radius: 8, x: 0, y: 4)
-                )
-                .scaleEffect(isConfirming ? 0.9 : 1.0)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Log set")
-    }
-}
 
 private struct LoggedSetList: View { // unchanged, not used in the bottom logger anymore
     @ObservedObject var vm: StartWorkoutViewModel
