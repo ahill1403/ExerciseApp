@@ -293,7 +293,7 @@ private struct WeekDots: View {
         .onAppear {
             previousFlags = flags
         }
-        .onChange(of: flags) { newValue in
+        .onChange(of: flags) { _, newValue in
             let newHighlights = newValue.enumerated().compactMap { index, value -> Int? in
                 guard value else { return nil }
                 let wasOn = previousFlags.indices.contains(index) ? previousFlags[index] : false
@@ -372,7 +372,7 @@ private struct WeekDot: View {
         .onAppear {
             if isHighlighted { highlightCycle += 1 }
         }
-        .onChange(of: isHighlighted) { newValue in
+        .onChange(of: isHighlighted) { _, newValue in
             if newValue { highlightCycle += 1 }
         }
     }

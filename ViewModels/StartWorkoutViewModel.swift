@@ -38,7 +38,7 @@ final class StartWorkoutViewModel: ObservableObject {
         TemplateInfo(
             name: "Foundations Strength",
             area: .strength,
-            focus: "Push",
+            focus: "Strength",
             duration: "40-50 mins",
             equipment: "Gym",
             summary: "Balanced pushes, pulls and core finish to build full-body strength."
@@ -62,7 +62,7 @@ final class StartWorkoutViewModel: ObservableObject {
         TemplateInfo(
             name: "Mobility Reset",
             area: .mobility,
-            focus: "Pull",
+            focus: "Mobility",
             duration: "20-30 mins",
             equipment: "Home",
             summary: "Gentle flow to open tight hips, spine and shoulders."
@@ -70,7 +70,7 @@ final class StartWorkoutViewModel: ObservableObject {
         TemplateInfo(
             name: "Interval Ignite",
             area: .hiit,
-            focus: "Pull",
+            focus: "HIIT",
             duration: "20-30 mins",
             equipment: "Running Shoes",
             summary: "Alternating sprint and recovery blocks for conditioning."
@@ -78,7 +78,7 @@ final class StartWorkoutViewModel: ObservableObject {
         TemplateInfo(
             name: "Power Circuit",
             area: .power,
-            focus: "Push",
+            focus: "Power",
             duration: "30-40 mins",
             equipment: "Gym",
             summary: "Dynamic jumps and loaded power drills to train speed."
@@ -86,7 +86,7 @@ final class StartWorkoutViewModel: ObservableObject {
         TemplateInfo(
             name: "Recovery Walk",
             area: .neat,
-            focus: "Legs",
+            focus: "NEAT/LISS",
             duration: "30-40 mins",
             equipment: "Running Shoes",
             summary: "Guided brisk walk with posture resets and breathing cues."
