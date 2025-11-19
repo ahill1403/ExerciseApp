@@ -11,6 +11,8 @@ final class StartWorkoutViewModel: ObservableObject {
     @Published var startTime: Date?
     @Published private(set) var planSuggestion: PlanSuggestion?
     @Published private(set) var todaysWorkouts: [WorkoutDefinition] = []
+    @Published private(set) var recentCatalogExercises: [WorkoutDefinition] = []
+    @Published private(set) var favoriteCatalogExercises: [WorkoutDefinition] = []
     @Published var currentWorkoutIndex: Int = 0
     @Published var completedWorkoutIDs: Set<String> = []
     @Published var workoutsReadyForCompletion: Set<String> = []
@@ -116,6 +118,7 @@ final class StartWorkoutViewModel: ObservableObject {
 
     init() {
         refreshPlanSuggestion()
+        refreshExerciseHistory()
     }
 
     func start(template: String) {
@@ -158,9 +161,6 @@ final class StartWorkoutViewModel: ObservableObject {
     func addExercise() {
         let name = newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
-        let entry = ExerciseEntry(name: name)
-        exercises.append(entry)
-
         let customDefinition = WorkoutDefinition(
             id: "custom-\(UUID().uuidString)",
             name: name,
@@ -168,14 +168,12 @@ final class StartWorkoutViewModel: ObservableObject {
             equipment: "Custom entry",
             summary: "Track your own movement."
         )
-        todaysWorkouts.append(customDefinition)
-        workoutExerciseLookup[customDefinition.id] = entry.id
-        currentWorkoutIndex = max(todaysWorkouts.count - 1, 0)
-        completedWorkoutIDs.remove(customDefinition.id)
-        workoutsReadyForCompletion.remove(customDefinition.id)
-        setTargetCache.removeValue(forKey: customDefinition.id)
+        appendExercise(with: customDefinition)
         newExerciseName = ""
-        showAddExercise = false
+    }
+
+    func addExercise(from definition: WorkoutDefinition) {
+        appendExercise(with: definition)
     }
 
     @discardableResult
@@ -286,6 +284,7 @@ final class StartWorkoutViewModel: ObservableObject {
         restDurations = []
         setTargetCache = [:]
         refreshPlanSuggestion()
+        refreshExerciseHistory()
         if clearCompletionMessage {
             lastCompletionMessage = nil
         }
@@ -391,6 +390,19 @@ final class StartWorkoutViewModel: ObservableObject {
 
     private var workoutExerciseLookup: [String: UUID] = [:]
     private var setTargetCache: [String: Int] = [:]
+
+    private func appendExercise(with definition: WorkoutDefinition) {
+        let definition = deduplicatedDefinition(from: definition)
+        let entry = ExerciseEntry(name: definition.name)
+        exercises.append(entry)
+        todaysWorkouts.append(definition)
+        workoutExerciseLookup[definition.id] = entry.id
+        currentWorkoutIndex = max(todaysWorkouts.count - 1, 0)
+        completedWorkoutIDs.remove(definition.id)
+        workoutsReadyForCompletion.remove(definition.id)
+        setTargetCache.removeValue(forKey: definition.id)
+        showAddExercise = false
+    }
 
     private func workoutID(forExercise exerciseID: UUID) -> String? {
         workoutExerciseLookup.first { $0.value == exerciseID }?.key
@@ -499,6 +511,59 @@ final class StartWorkoutViewModel: ObservableObject {
         if currentWorkoutIndex >= todaysWorkouts.count {
             currentWorkoutIndex = max(todaysWorkouts.count - 1, 0)
         }
+    }
+
+    private func deduplicatedDefinition(from definition: WorkoutDefinition) -> WorkoutDefinition {
+        guard todaysWorkouts.contains(where: { $0.id == definition.id }) else {
+            return definition
+        }
+
+        return WorkoutDefinition(
+            id: "\(definition.id)-\(UUID().uuidString)",
+            name: definition.name,
+            area: definition.area,
+            minimumExperience: definition.minimumExperience,
+            equipment: definition.equipment,
+            summary: definition.summary
+        )
+    }
+
+    private func refreshExerciseHistory() {
+        let history = WorkoutStore.shared.load().sorted { $0.date > $1.date }
+        let catalog = WorkoutCatalog.shared
+
+        var recent: [WorkoutDefinition] = []
+        var seen: Set<String> = []
+
+        for session in history {
+            for exercise in session.exercises {
+                guard let match = catalog.all.first(where: { $0.name.caseInsensitiveCompare(exercise.name) == .orderedSame }) else { continue }
+                if !seen.contains(match.id) {
+                    recent.append(match)
+                    seen.insert(match.id)
+                }
+            }
+            if recent.count >= 10 { break }
+        }
+        recentCatalogExercises = recent
+
+        var counts: [String: Int] = [:]
+        for session in history {
+            for exercise in session.exercises {
+                guard let match = catalog.all.first(where: { $0.name.caseInsensitiveCompare(exercise.name) == .orderedSame }) else { continue }
+                counts[match.id, default: 0] += 1
+            }
+        }
+
+        let favorites = counts
+            .sorted { lhs, rhs in
+                if lhs.value == rhs.value { return lhs.key < rhs.key }
+                return lhs.value > rhs.value
+            }
+            .compactMap { catalog.workout(for: $0.key) }
+            .prefix(8)
+
+        favoriteCatalogExercises = Array(favorites)
     }
 
     private func advanceToNextWorkout(after index: Int) {

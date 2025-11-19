@@ -141,7 +141,14 @@ struct WorkoutSessionView: View {
     private func sheetContent(for sheet: ActiveSheet) -> some View {
         switch sheet {
         case .addExercise:
-            AddExerciseSheet(name: $vm.newExerciseName) { vm.addExercise() }
+            AddExerciseSheet(
+                name: $vm.newExerciseName,
+                catalog: WorkoutCatalog.shared.allWorkouts(),
+                recents: vm.recentCatalogExercises,
+                favorites: vm.favoriteCatalogExercises,
+                onAddDefinition: { vm.addExercise(from: $0) },
+                onAddCustom: { vm.addExercise() }
+            )
         case .editSet:
             EditSetSheet(reps: $editReps, weight: $editWeight, units: $editUnits) {
                 if let exID = editExerciseID,
@@ -589,23 +596,190 @@ private struct LoggedSetSummaryRow: View {
 
 private struct AddExerciseSheet: View {
     @Binding var name: String
-    var onAdd: () -> Void
+    let catalog: [WorkoutDefinition]
+    let recents: [WorkoutDefinition]
+    let favorites: [WorkoutDefinition]
+    var onAddDefinition: (WorkoutDefinition) -> Void
+    var onAddCustom: () -> Void
+
     @Environment(\.dismiss) private var dismiss
-    
+
+    @State private var searchText: String = ""
+    @State private var selectedArea: FitnessArea? = nil
+    @State private var selectedEquipment: String? = nil
+
+    private var filteredCatalog: [WorkoutDefinition] {
+        var results = catalog
+
+        if let area = selectedArea {
+            results = results.filter { $0.area == area }
+        }
+
+        if let equipment = selectedEquipment {
+            results = results.filter { $0.equipment.caseInsensitiveCompare(equipment) == .orderedSame }
+        }
+
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !query.isEmpty {
+            results = results.filter { definition in
+                definition.name.lowercased().contains(query)
+                || definition.summary.lowercased().contains(query)
+                || definition.equipment.lowercased().contains(query)
+            }
+        }
+
+        return results
+            .sorted { lhs, rhs in
+                if lhs.area == rhs.area { return lhs.name < rhs.name }
+                return lhs.area.rawValue < rhs.area.rawValue
+            }
+    }
+
+    private var equipmentOptions: [String] {
+        Array(Set(catalog.map { $0.equipment })).sorted()
+    }
+
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Exercise Name") { TextField("e.g., Bench Press", text: $name) }
+            List {
+                filterSection
+
+                if !favorites.isEmpty {
+                    Section("Favorites") {
+                        ForEach(favorites, id: \.id) { definition in
+                            exerciseButton(for: definition)
+                        }
+                    }
+                }
+
+                if !recents.isEmpty {
+                    Section("Recent") {
+                        ForEach(recents, id: \.id) { definition in
+                            exerciseButton(for: definition)
+                        }
+                    }
+                }
+
+                Section("All Exercises") {
+                    ForEach(filteredCatalog, id: \.id) { definition in
+                        exerciseButton(for: definition)
+                    }
+                }
+
+                manualEntrySection
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Add Exercise")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Add") { onAdd(); dismiss() }
-                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search exercises")
+        }
+    }
+
+    private var manualEntrySection: some View {
+        Section("Manual Entry") {
+            TextField("e.g., Bench Press", text: $name)
+            Button {
+                onAddCustom()
+                dismiss()
+            } label: {
+                Label("Add Custom Exercise", systemImage: "plus.circle.fill")
+            }
+            .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    private var filterSection: some View {
+        Section("Filters") {
+            VStack(alignment: .leading, spacing: 12) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        filterChip(title: "All Focus", isSelected: selectedArea == nil) {
+                            selectedArea = nil
+                        }
+                        ForEach(FitnessArea.allCases) { area in
+                            filterChip(title: area.displayName, isSelected: selectedArea == area) {
+                                selectedArea = (selectedArea == area) ? nil : area
+                            }
+                        }
+                    }
+                    .padding(.vertical, 6)
+                }
+
+                if !equipmentOptions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            filterChip(title: "All Equipment", isSelected: selectedEquipment == nil) {
+                                selectedEquipment = nil
+                            }
+
+                            ForEach(equipmentOptions, id: \.self) { equipment in
+                                filterChip(title: equipment, isSelected: selectedEquipment == equipment) {
+                                    selectedEquipment = (selectedEquipment == equipment) ? nil : equipment
+                                }
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
                 }
             }
+            .padding(.vertical, 4)
         }
+    }
+
+    private func filterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(isSelected ? AtlasTheme.gradient.opacity(0.2) : AtlasTheme.cardFill, in: Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(isSelected ? AtlasTheme.accentGreen : AtlasTheme.border, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func exerciseButton(for definition: WorkoutDefinition) -> some View {
+        Button {
+            onAddDefinition(definition)
+            dismiss()
+        } label: {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(definition.name)
+                        .font(.headline)
+                        .foregroundColor(AtlasTheme.textPrimary)
+                    Spacer()
+                    Text(definition.area.rawValue)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(AtlasTheme.cardFill, in: Capsule())
+                }
+
+                Text(definition.summary)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                HStack(spacing: 8) {
+                    Label(definition.equipment, systemImage: "dumbbell")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    if definition.minimumExperience != .beginner {
+                        Label(definition.minimumExperience.rawValue, systemImage: "bolt.fill")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
     }
 }
 
