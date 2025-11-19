@@ -7,6 +7,7 @@ struct WorkoutDefinition: Identifiable, Hashable {
     let minimumExperience: TrainingExperience
     let equipment: String
     let summary: String
+    let targetMuscles: [String]
 
     init(
         id: String? = nil,
@@ -14,13 +15,15 @@ struct WorkoutDefinition: Identifiable, Hashable {
         area: FitnessArea,
         minimumExperience: TrainingExperience = .beginner,
         equipment: String,
-        summary: String
+        summary: String,
+        targetMuscles: [String] = []
     ) {
         self.name = name
         self.area = area
         self.minimumExperience = minimumExperience
         self.equipment = equipment
         self.summary = summary
+        self.targetMuscles = targetMuscles
         if let id {
             self.id = id
         } else {
@@ -34,6 +37,20 @@ struct WorkoutDefinition: Identifiable, Hashable {
             .replacingOccurrences(of: "[^a-z0-9]+", with: "-", options: .regularExpression)
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
         return "\(area.rawValue.lowercased())-\(cleaned)"
+    }
+
+    var equipmentCategory: String {
+        let normalized = equipment.lowercased()
+        if normalized.contains("run") || normalized.contains("jog") || normalized.contains("walk") || normalized.contains("shoe") {
+            return "Running Shoes"
+        }
+
+        let gymKeywords = ["barbell", "cable", "machine", "bench", "sled", "treadmill", "bike", "row", "elliptical", "box"]
+        if gymKeywords.contains(where: { normalized.contains($0) }) {
+            return "Gym"
+        }
+
+        return "Home"
     }
 }
 
@@ -52,77 +69,88 @@ final class WorkoutCatalog {
                 area: .strength,
                 minimumExperience: .intermediate,
                 equipment: "Barbell or dumbbells",
-                summary: "3 sets of 6-8 reps building upper-body pushing strength."
+                summary: "3 sets of 6-8 reps building upper-body pushing strength.",
+                targetMuscles: ["Chest", "Triceps", "Shoulders"]
             ),
             WorkoutDefinition(
                 name: "Incline Dumbbell Press",
                 area: .strength,
                 minimumExperience: .intermediate,
                 equipment: "Bench + dumbbells",
-                summary: "Angle the bench 30° for 10-12 controlled reps targeting upper chest."
+                summary: "Angle the bench 30° for 10-12 controlled reps targeting upper chest.",
+                targetMuscles: ["Chest", "Shoulders", "Triceps"]
             ),
             WorkoutDefinition(
                 name: "Push-Ups",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Bodyweight",
-                summary: "2-3 sets to comfortable fatigue keeping a strong plank line."
+                summary: "2-3 sets to comfortable fatigue keeping a strong plank line.",
+                targetMuscles: ["Chest", "Triceps", "Shoulders", "Core"]
             ),
             WorkoutDefinition(
                 name: "Single-Arm Dumbbell Row",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Dumbbell + bench",
-                summary: "3 sets of 8-10 per arm focusing on squeezing the back."
+                summary: "3 sets of 8-10 per arm focusing on squeezing the back.",
+                targetMuscles: ["Back", "Biceps", "Core"]
             ),
             WorkoutDefinition(
                 name: "Lat Pulldown",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Cable machine",
-                summary: "Keep core tight for 3 sets of 10-12 reps drawing elbows toward ribs."
+                summary: "Keep core tight for 3 sets of 10-12 reps drawing elbows toward ribs.",
+                targetMuscles: ["Back", "Biceps", "Forearms"]
             ),
             WorkoutDefinition(
                 name: "Goblet Squat",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Dumbbell or kettlebell",
-                summary: "Sit tall for 3 sets of 10 reps to build leg strength and posture."
+                summary: "Sit tall for 3 sets of 10 reps to build leg strength and posture.",
+                targetMuscles: ["Quads", "Glutes", "Core"]
             ),
             WorkoutDefinition(
                 name: "Romanian Deadlift",
                 area: .strength,
                 minimumExperience: .intermediate,
                 equipment: "Barbell or dumbbells",
-                summary: "3 sets of 8 reps hinging at the hips to target hamstrings and glutes."
+                summary: "3 sets of 8 reps hinging at the hips to target hamstrings and glutes.",
+                targetMuscles: ["Hamstrings", "Glutes", "Back"]
             ),
             WorkoutDefinition(
                 name: "Walking Lunge",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Bodyweight or light dumbbells",
-                summary: "Perform 3 x 12 steps per leg for balance and single-leg strength."
+                summary: "Perform 3 x 12 steps per leg for balance and single-leg strength.",
+                targetMuscles: ["Quads", "Glutes", "Hamstrings", "Core"]
             ),
             WorkoutDefinition(
                 name: "Seated Shoulder Press",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Dumbbells",
-                summary: "3 sets of 8-10 reps keeping ribs down and shoulders strong."
+                summary: "3 sets of 8-10 reps keeping ribs down and shoulders strong.",
+                targetMuscles: ["Shoulders", "Triceps", "Upper Back"]
             ),
             WorkoutDefinition(
                 name: "Cable Triceps Pressdown",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Cable machine",
-                summary: "3 x 12 reps with elbows close to your sides for arm definition."
+                summary: "3 x 12 reps with elbows close to your sides for arm definition.",
+                targetMuscles: ["Triceps"]
             ),
             WorkoutDefinition(
                 name: "Hammer Curl",
                 area: .strength,
                 minimumExperience: .beginner,
                 equipment: "Dumbbells",
-                summary: "3 x 12 reps using a neutral grip to build forearm and biceps strength."
+                summary: "3 x 12 reps using a neutral grip to build forearm and biceps strength.",
+                targetMuscles: ["Biceps", "Forearms"]
             ),
 
             // Mobility
@@ -131,42 +159,48 @@ final class WorkoutCatalog {
                 area: .mobility,
                 minimumExperience: .beginner,
                 equipment: "Yoga mat",
-                summary: "Move through 10 gentle reps to warm up the spine and core."
+                summary: "Move through 10 gentle reps to warm up the spine and core.",
+                targetMuscles: ["Spine", "Core"]
             ),
             WorkoutDefinition(
                 name: "World's Greatest Stretch",
                 area: .mobility,
                 minimumExperience: .beginner,
                 equipment: "Bodyweight",
-                summary: "Alternate sides for 6 slow reps to open hips, hamstrings and thoracic spine."
+                summary: "Alternate sides for 6 slow reps to open hips, hamstrings and thoracic spine.",
+                targetMuscles: ["Hips", "Hamstrings", "Thoracic Spine"]
             ),
             WorkoutDefinition(
                 name: "Hip Flexor Stretch",
                 area: .mobility,
                 minimumExperience: .beginner,
                 equipment: "Mat or pad",
-                summary: "Hold each side 30 seconds to ease desk-tight hips."
+                summary: "Hold each side 30 seconds to ease desk-tight hips.",
+                targetMuscles: ["Hips", "Quads"]
             ),
             WorkoutDefinition(
                 name: "90/90 Hip Switch",
                 area: .mobility,
                 minimumExperience: .beginner,
                 equipment: "Bodyweight",
-                summary: "Perform 8 controlled switches keeping torso tall for hip rotation."
+                summary: "Perform 8 controlled switches keeping torso tall for hip rotation.",
+                targetMuscles: ["Hips", "Glutes"]
             ),
             WorkoutDefinition(
                 name: "Thoracic Spine Opener",
                 area: .mobility,
                 minimumExperience: .beginner,
                 equipment: "Foam roller",
-                summary: "Roll upper back for 90 seconds, pausing on sticky spots."
+                summary: "Roll upper back for 90 seconds, pausing on sticky spots.",
+                targetMuscles: ["Thoracic Spine", "Upper Back"]
             ),
             WorkoutDefinition(
                 name: "Child's Pose Breathing",
                 area: .mobility,
                 minimumExperience: .beginner,
                 equipment: "Yoga mat",
-                summary: "3 deep-breath rounds to relax shoulders and lower back."
+                summary: "3 deep-breath rounds to relax shoulders and lower back.",
+                targetMuscles: ["Back", "Shoulders", "Hips"]
             ),
 
             // Power
@@ -175,35 +209,40 @@ final class WorkoutCatalog {
                 area: .power,
                 minimumExperience: .intermediate,
                 equipment: "Kettlebell",
-                summary: "3 sets of 15 explosive swings driving hips forward."
+                summary: "3 sets of 15 explosive swings driving hips forward.",
+                targetMuscles: ["Glutes", "Hamstrings", "Core", "Back"]
             ),
             WorkoutDefinition(
                 name: "Medicine Ball Slam",
                 area: .power,
                 minimumExperience: .beginner,
                 equipment: "Medicine ball",
-                summary: "3 x 12 slams focusing on speed and full-body power."
+                summary: "3 x 12 slams focusing on speed and full-body power.",
+                targetMuscles: ["Core", "Lats", "Shoulders"]
             ),
             WorkoutDefinition(
                 name: "Jump Squat",
                 area: .power,
                 minimumExperience: .intermediate,
                 equipment: "Bodyweight",
-                summary: "3 sets of 10 soft landings to train quick lower-body drive."
+                summary: "3 sets of 10 soft landings to train quick lower-body drive.",
+                targetMuscles: ["Quads", "Glutes", "Calves"]
             ),
             WorkoutDefinition(
                 name: "Box Jump",
                 area: .power,
                 minimumExperience: .intermediate,
                 equipment: "Plyo box",
-                summary: "5 sets of 5 crisp jumps emphasizing stick-stable landings."
+                summary: "5 sets of 5 crisp jumps emphasizing stick-stable landings.",
+                targetMuscles: ["Quads", "Glutes", "Calves"]
             ),
             WorkoutDefinition(
                 name: "Push Press",
                 area: .power,
                 minimumExperience: .intermediate,
                 equipment: "Barbell or dumbbells",
-                summary: "4 sets of 6 explosive presses using a slight knee drive."
+                summary: "4 sets of 6 explosive presses using a slight knee drive.",
+                targetMuscles: ["Shoulders", "Triceps", "Legs", "Core"]
             ),
 
             // Quick intervals (HIIT)
@@ -212,35 +251,40 @@ final class WorkoutCatalog {
                 area: .hiit,
                 minimumExperience: .intermediate,
                 equipment: "Treadmill",
-                summary: "8 rounds of 30s fast / 60s easy running for high-intensity cardio."
+                summary: "8 rounds of 30s fast / 60s easy running for high-intensity cardio.",
+                targetMuscles: ["Cardio", "Legs", "Glutes"]
             ),
             WorkoutDefinition(
                 name: "Bike Tabata",
                 area: .hiit,
                 minimumExperience: .intermediate,
                 equipment: "Stationary bike",
-                summary: "8 cycles of 20s all-out pedaling with 10s recovery between efforts."
+                summary: "8 cycles of 20s all-out pedaling with 10s recovery between efforts.",
+                targetMuscles: ["Cardio", "Legs"]
             ),
             WorkoutDefinition(
                 name: "Rowing Machine Bursts",
                 area: .hiit,
                 minimumExperience: .intermediate,
                 equipment: "Rowing machine",
-                summary: "10 x 200m powerful pulls with easy strokes to recover."
+                summary: "10 x 200m powerful pulls with easy strokes to recover.",
+                targetMuscles: ["Back", "Legs", "Cardio"]
             ),
             WorkoutDefinition(
                 name: "Jump Rope Sprint Ladder",
                 area: .hiit,
                 minimumExperience: .beginner,
                 equipment: "Jump rope",
-                summary: "5-minute ladder alternating 30s fast jumps with 30s brisk marching."
+                summary: "5-minute ladder alternating 30s fast jumps with 30s brisk marching.",
+                targetMuscles: ["Calves", "Shoulders", "Cardio"]
             ),
             WorkoutDefinition(
                 name: "Bodyweight Power Circuit",
                 area: .hiit,
                 minimumExperience: .beginner,
                 equipment: "Mat + timer",
-                summary: "3 rounds of squats, mountain climbers, and skaters for 40s on / 20s off."
+                summary: "3 rounds of squats, mountain climbers, and skaters for 40s on / 20s off.",
+                targetMuscles: ["Full Body", "Cardio"]
             ),
 
             // Steady cardio (NEAT/LISS)
@@ -249,35 +293,40 @@ final class WorkoutCatalog {
                 area: .neat,
                 minimumExperience: .beginner,
                 equipment: "Comfortable shoes",
-                summary: "30-40 minutes at a pace that elevates heart rate but allows conversation."
+                summary: "30-40 minutes at a pace that elevates heart rate but allows conversation.",
+                targetMuscles: ["Cardio", "Legs"]
             ),
             WorkoutDefinition(
                 name: "Easy Cycling",
                 area: .neat,
                 minimumExperience: .beginner,
                 equipment: "Bike or spin bike",
-                summary: "35 minutes of smooth pedaling in zone 2 heart-rate effort."
+                summary: "35 minutes of smooth pedaling in zone 2 heart-rate effort.",
+                targetMuscles: ["Cardio", "Legs"]
             ),
             WorkoutDefinition(
                 name: "Light Jog",
                 area: .neat,
                 minimumExperience: .beginner,
                 equipment: "Running shoes",
-                summary: "25 minutes of easy running focusing on relaxed breathing."
+                summary: "25 minutes of easy running focusing on relaxed breathing.",
+                targetMuscles: ["Cardio", "Legs"]
             ),
             WorkoutDefinition(
                 name: "Elliptical Cruise",
                 area: .neat,
                 minimumExperience: .beginner,
                 equipment: "Elliptical trainer",
-                summary: "30 minutes steady with light resistance to boost daily movement."
+                summary: "30 minutes steady with light resistance to boost daily movement.",
+                targetMuscles: ["Cardio", "Legs"]
             ),
             WorkoutDefinition(
                 name: "Stair Climb Steady Pace",
                 area: .neat,
                 minimumExperience: .intermediate,
                 equipment: "Stair machine or stadium steps",
-                summary: "20-25 minutes continuous climbing at a controlled pace."
+                summary: "20-25 minutes continuous climbing at a controlled pace.",
+                targetMuscles: ["Cardio", "Legs", "Glutes"]
             )
         ]
 
