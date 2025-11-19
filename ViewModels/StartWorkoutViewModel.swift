@@ -139,6 +139,24 @@ final class StartWorkoutViewModel: ObservableObject {
         bindExercisesToWorkouts()
     }
 
+    func startFromScratch(with selections: [WorkoutDefinition]) {
+        selectedTemplate = "Build from scratch"
+        isLogging = true
+        startTime = Date()
+        completedWorkoutIDs = []
+        completedSetIDs = []
+        workoutsReadyForCompletion = []
+        restDurations = []
+        currentWorkoutIndex = 0
+        setTargetCache = [:]
+
+        todaysWorkouts = selections
+        exercises = selections.map { ExerciseEntry(name: $0.name) }
+        workoutExerciseLookup = Dictionary(uniqueKeysWithValues: zip(selections.map(\.id), exercises.map(\.id)))
+
+        bindExercisesToWorkouts()
+    }
+
     func addExercise() {
         let name = newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }

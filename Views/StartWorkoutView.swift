@@ -17,6 +17,7 @@ struct StartWorkoutView: View {
     @State private var expandedTemplateID: StartWorkoutViewModel.TemplateInfo.ID?
     @State private var showAllTemplates = false
     @State private var showTemplatePicker = false
+    @State private var showBuildFromScratch = false
 
     @State private var completionMessage: String?
 
@@ -96,6 +97,19 @@ struct StartWorkoutView: View {
                     vm.start(template: "Custom")
                     expandedTemplateID = nil
                     showTemplatePicker = false
+                }
+            )
+        }
+        .sheet(isPresented: $showBuildFromScratch) {
+            BuildFromScratchSheet(
+                catalog: WorkoutCatalog.shared.all,
+                onStart: { selections in
+                    vm.startFromScratch(with: selections)
+                    showBuildFromScratch = false
+                },
+                onSkip: {
+                    vm.startFromScratch(with: [])
+                    showBuildFromScratch = false
                 }
             )
         }
@@ -246,7 +260,7 @@ struct StartWorkoutView: View {
                 .foregroundColor(.secondary)
 
             Button("Start Empty Session") {
-                showTemplatePicker = true
+                showBuildFromScratch = true
             }
             .buttonStyle(AtlasButtonStyle())
         }
@@ -424,14 +438,177 @@ private struct TemplatePickerSheet: View {
     }
 }
 
+private struct BuildFromScratchSheet: View {
+    let catalog: [WorkoutDefinition]
+    var onStart: ([WorkoutDefinition]) -> Void
+    var onSkip: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var searchText = ""
+    @State private var selectedMuscle: FitnessArea?
+    @State private var selectedEquipment: String?
+    @State private var selectedType: String?
+    @State private var stagedSelections: Set<String> = []
+
+    private var muscleOptions: [FitnessArea] { FitnessArea.allCases }
+    private var equipmentOptions: [String] { Array(Set(catalog.map(\.equipment))).sorted() }
+    private var typeOptions: [String] { Array(Set(catalog.map(\.sessionTypeTag))).sorted() }
+
+    private var filteredExercises: [WorkoutDefinition] {
+        catalog.filter { exercise in
+            let matchesSearch = searchText.isEmpty
+                || exercise.name.localizedCaseInsensitiveContains(searchText)
+                || exercise.summary.localizedCaseInsensitiveContains(searchText)
+
+            let matchesMuscle = selectedMuscle.map { $0 == exercise.area } ?? true
+            let matchesEquipment = selectedEquipment.map { $0 == exercise.equipment } ?? true
+            let matchesType = selectedType.map { $0 == exercise.sessionTypeTag } ?? true
+
+            return matchesSearch && matchesMuscle && matchesEquipment && matchesType
+        }
+    }
+
+    private var selectedExercises: [WorkoutDefinition] {
+        catalog.filter { stagedSelections.contains($0.id) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Queue movements before you start logging. Use filters to add focused work without committing to a template.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    TemplateSearchField(text: $searchText, placeholder: "Search exercises")
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        FilterSection(
+                            title: "Muscle group",
+                            options: muscleOptions.map { $0.displayName },
+                            selection: Binding(
+                                get: { selectedMuscle?.displayName },
+                                set: { newValue in selectedMuscle = muscleOptions.first { $0.displayName == newValue } }
+                            ),
+                            animation: .spring(response: 0.32, dampingFraction: 0.86)
+                        )
+
+                        FilterSection(
+                            title: "Equipment",
+                            options: equipmentOptions,
+                            selection: $selectedEquipment,
+                            animation: .spring(response: 0.32, dampingFraction: 0.86)
+                        )
+
+                        FilterSection(
+                            title: "Duration / type",
+                            options: typeOptions,
+                            selection: $selectedType,
+                            animation: .spring(response: 0.32, dampingFraction: 0.86)
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Exercise library")
+                                .font(.title3.bold())
+                                .gradientForeground()
+                            Spacer()
+                            Text("\(filteredExercises.count) shown")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.secondary)
+                        }
+
+                        VStack(spacing: 12) {
+                            ForEach(filteredExercises, id: \.id) { exercise in
+                                ScratchExerciseRow(
+                                    exercise: exercise,
+                                    isSelected: stagedSelections.contains(exercise.id),
+                                    onToggle: {
+                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                                            if stagedSelections.contains(exercise.id) {
+                                                stagedSelections.remove(exercise.id)
+                                            } else {
+                                                stagedSelections.insert(exercise.id)
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+
+                    Divider().opacity(0.14)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("\(selectedExercises.count) exercises queued")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+
+                        Text("We'll open the logger with these queued so you can add sets right away. You can still add or remove anything inside the session.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+
+                        Button {
+                            onStart(selectedExercises)
+                            dismiss()
+                        } label: {
+                            Label(
+                                selectedExercises.isEmpty ? "Start logging from scratch" : "Start with \(selectedExercises.count) exercises",
+                                systemImage: "play.fill"
+                            )
+                        }
+                        .buttonStyle(AtlasButtonStyle())
+
+                        if selectedExercises.isEmpty {
+                            Button {
+                                onSkip()
+                                dismiss()
+                            } label: {
+                                Label("Skip and add as you go", systemImage: "rectangle.dashed")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
+                            .buttonStyle(.plain)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(AtlasTheme.cardFill.opacity(0.9))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .stroke(AtlasTheme.border, lineWidth: 1)
+                            )
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("Build from scratch")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+            }
+            .onAppear {
+                searchText = ""
+                selectedMuscle = nil
+                selectedEquipment = nil
+                selectedType = nil
+            }
+        }
+    }
+}
+
 private struct TemplateSearchField: View {
     @Binding var text: String
+    var placeholder: String = "Search templates"
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
-            TextField("Search templates", text: $text)
+            TextField(placeholder, text: $text)
                 .textInputAutocapitalization(.words)
         }
         .padding(.horizontal, 14)
@@ -523,6 +700,69 @@ private struct FilterChip: View {
                 .foregroundStyle(isSelected ? Color.white : .secondary)
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct ScratchExerciseRow: View {
+    let exercise: WorkoutDefinition
+    let isSelected: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(exercise.name)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    Text(exercise.area.displayName)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(AtlasTheme.gradient.opacity(0.16), in: Capsule())
+                }
+
+                Spacer()
+
+                Button(action: onToggle) {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "plus.circle")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(isSelected ? AtlasTheme.gradient : .secondary)
+                        .symbolRenderingMode(.hierarchical)
+                }
+                .buttonStyle(.plain)
+            }
+
+            HStack(spacing: 12) {
+                Label(exercise.equipment, systemImage: "dumbbell.fill")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                Divider()
+                    .frame(height: 14)
+                    .overlay(Color.secondary.opacity(0.22))
+
+                Text(exercise.sessionTypeTag)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(exercise.summary)
+                .font(.footnote)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(AtlasTheme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(isSelected ? AtlasTheme.gradient : AtlasTheme.border, lineWidth: isSelected ? 1.4 : 1)
+        )
     }
 }
 

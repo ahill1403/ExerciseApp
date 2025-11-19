@@ -8,6 +8,17 @@ struct WorkoutDefinition: Identifiable, Hashable {
     let equipment: String
     let summary: String
 
+    /// Lightweight tag describing how this workout is typically logged.
+    var sessionTypeTag: String {
+        switch area {
+        case .strength: return "Sets & reps"
+        case .mobility: return "Mobility / stretching"
+        case .power: return "Explosive sets"
+        case .hiit: return "Intervals"
+        case .neat: return "Time-based cardio"
+        }
+    }
+
     init(
         id: String? = nil,
         name: String,
