@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UserNotifications
 
 struct WeeklyPlannerView: View {
@@ -8,6 +9,7 @@ struct WeeklyPlannerView: View {
     @State private var alertMessage: String?
     @State private var editorSelection: DaySelection?
     @State private var storedProfile: UserProfile?
+    @State private var toast: PlannerToast?
 
     init() {
         let storedPlan = PlannerStore.shared.load()
@@ -64,6 +66,15 @@ struct WeeklyPlannerView: View {
         } message: {
             Text(alertMessage ?? "")
         }
+        .overlay(alignment: .top) {
+            if let toast {
+                PlannerToastView(toast: toast)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .transition(motion.bannerTransition)
+            }
+        }
+        .animation(motion.primary, value: toast)
     }
 
     private struct DaySelection: Identifiable {
@@ -93,6 +104,35 @@ struct WeeklyPlannerView: View {
         }
 
         let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            DispatchQueue.main.async {
+                if let error {
+                    presentToast(
+                        message: "We couldn't enable reminders. Please try again.",
+                        style: .error
+                    )
+                    print("Notification auth error: \(error.localizedDescription)")
+                    return
+                }
+
+                guard granted else {
+                    presentToast(
+                        message: "Notifications are turned off. Enable them in Settings to apply reminders.",
+                        style: .error
+                    )
+                    return
+                }
+
+                scheduleReminders(center: center, weekdays: weekdays, time: time)
+                presentToast(
+                    message: "Reminders scheduled for \(weekdays.count) day(s) per week.",
+                    style: .success
+                )
+            }
+        }
+    }
+
+    private func scheduleReminders(center: UNUserNotificationCenter, weekdays: [Int], time: Date) {
         let allIDs = ["atlasfit.dailyReminder"] + (1...7).map { "atlasfit.reminder.\($0)" }
         center.removePendingNotificationRequests(withIdentifiers: allIDs)
 
@@ -112,7 +152,22 @@ struct WeeklyPlannerView: View {
             let id = "atlasfit.reminder.\(wd)"
             center.add(UNNotificationRequest(identifier: id, content: content, trigger: trigger))
         }
-        alertMessage = "Reminders scheduled for \(weekdays.count) day(s) per week."
+    }
+
+    private func presentToast(message: String, style: PlannerToast.Style) {
+        let toast = PlannerToast(message: message, style: style)
+        self.toast = toast
+
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(style == .success ? .success : .error)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            if self.toast?.id == toast.id {
+                withAnimation(motion.primary) {
+                    self.toast = nil
+                }
+            }
+        }
     }
 
     func applyRecommendedPlan() {
@@ -129,6 +184,63 @@ struct WeeklyPlannerView: View {
         storedProfile = profile
         PlannerStore.shared.save(recommended)
         alertMessage = "Weekly plan updated using your profile."
+    }
+}
+
+private struct PlannerToast: Identifiable {
+    enum Style {
+        case success
+        case error
+    }
+
+    let id = UUID()
+    let message: String
+    let style: Style
+}
+
+private struct PlannerToastView: View {
+    let toast: PlannerToast
+
+    private var iconName: String {
+        switch toast.style {
+        case .success: return "checkmark.circle.fill"
+        case .error: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var iconColor: Color {
+        switch toast.style {
+        case .success: return AtlasTheme.accentGreen
+        case .error: return .orange
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: iconName)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundColor(iconColor)
+
+            Text(toast.message)
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(AtlasTheme.textPrimary)
+                .multilineTextAlignment(.leading)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(AtlasTheme.bgElevated.opacity(0.98))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.12), radius: 16, x: 0, y: 10)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(toast.message)
     }
 }
 
