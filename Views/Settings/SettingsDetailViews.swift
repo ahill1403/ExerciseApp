@@ -43,7 +43,7 @@ struct UnitsSettingsView: View {
         .onAppear {
             selection = UserProfileStore.load()?.units ?? .lbs
         }
-        .onChange(of: selection) { newValue in
+        .onChange(of: selection) { _, newValue in
             UserProfileStore.upsert { $0.units = newValue }
         }
     }
@@ -88,8 +88,10 @@ struct NotificationSettingsView: View {
         }
         .atlasNavigationBarStyle()
         .onAppear(perform: loadState)
-        .onChange(of: wantsReminders, perform: handleReminderToggle)
-        .onChange(of: reminderTime) { _ in
+        .onChange(of: wantsReminders) { _, newValue in
+            handleReminderToggle(newValue)
+        }
+        .onChange(of: reminderTime) { _, _ in
             guard wantsReminders else { return }
             scheduleReminders()
             persistReminderState()

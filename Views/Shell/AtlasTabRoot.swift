@@ -70,7 +70,7 @@ struct AtlasTabRoot: View {
             hideTabBar = shouldHideTabBar(for: selected)
             storedTabRawValue = selected.rawValue
         }
-        .onChange(of: selected) { newValue in
+        .onChange(of: selected) { _, newValue in
             storedTabRawValue = newValue.rawValue
             if newValue != .workout { isWorkoutLogging = false }
             withAnimation(motion.elevated) {
