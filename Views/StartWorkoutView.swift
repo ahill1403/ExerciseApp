@@ -259,12 +259,43 @@ private struct TemplatePickerSheet: View {
     var onStartTemplate: (String) -> Void
     var onStartCustom: () -> Void
 
+    @State private var searchText = ""
+    @State private var selectedEquipment: String?
+    @State private var selectedDuration: String?
+    @State private var selectedFocus: String?
+
     @Environment(\.dismiss) private var dismiss
 
     private let templateColumns: [GridItem] = [
         GridItem(.flexible(), spacing: 14),
         GridItem(.flexible(), spacing: 14)
     ]
+
+    private var equipmentOptions: [String] {
+        Array(Set(templates.map(\.equipment))).sorted()
+    }
+
+    private var durationOptions: [String] {
+        Array(Set(templates.map(\.duration))).sorted()
+    }
+
+    private var focusOptions: [String] {
+        Array(Set(templates.map(\.focus))).sorted()
+    }
+
+    private var filteredTemplates: [StartWorkoutViewModel.TemplateInfo] {
+        templates.filter { template in
+            (searchText.isEmpty || template.name.localizedCaseInsensitiveContains(searchText)) &&
+            (selectedEquipment == nil || template.equipment == selectedEquipment) &&
+            (selectedDuration == nil || template.duration == selectedDuration) &&
+            (selectedFocus == nil || template.focus == selectedFocus)
+        }
+    }
+
+    private var templatesToShow: [StartWorkoutViewModel.TemplateInfo] {
+        let results = filteredTemplates
+        return showAllTemplates ? results : Array(results.prefix(2))
+    }
 
     var body: some View {
         NavigationStack {
@@ -294,7 +325,16 @@ private struct TemplatePickerSheet: View {
                         .font(.footnote)
                         .foregroundColor(.secondary)
 
-                    let templatesToShow = showAllTemplates ? templates : Array(templates.prefix(2))
+                    TemplateSearchField(text: $searchText)
+
+                    TemplateFilters(
+                        equipmentOptions: equipmentOptions,
+                        durationOptions: durationOptions,
+                        focusOptions: focusOptions,
+                        selectedEquipment: $selectedEquipment,
+                        selectedDuration: $selectedDuration,
+                        selectedFocus: $selectedFocus
+                    )
 
                     LazyVGrid(columns: templateColumns, spacing: 14) {
                         ForEach(templatesToShow) { template in
@@ -315,7 +355,7 @@ private struct TemplatePickerSheet: View {
                         }
                     }
 
-                    if templates.count > 2 {
+                    if filteredTemplates.count > 2 {
                         Button {
                             withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) {
                                 showAllTemplates.toggle()
@@ -352,7 +392,113 @@ private struct TemplatePickerSheet: View {
         .onAppear {
             expandedTemplateID = nil
             showAllTemplates = false
+            searchText = ""
+            selectedEquipment = nil
+            selectedDuration = nil
+            selectedFocus = nil
         }
+    }
+}
+
+private struct TemplateSearchField: View {
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+            TextField("Search templates", text: $text)
+                .textInputAutocapitalization(.words)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(AtlasTheme.cardFill)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(AtlasTheme.border, lineWidth: 1)
+        )
+    }
+}
+
+private struct TemplateFilters: View {
+    let equipmentOptions: [String]
+    let durationOptions: [String]
+    let focusOptions: [String]
+
+    @Binding var selectedEquipment: String?
+    @Binding var selectedDuration: String?
+    @Binding var selectedFocus: String?
+
+    private let animation = Animation.spring(response: 0.32, dampingFraction: 0.86)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !equipmentOptions.isEmpty {
+                FilterSection(title: "Equipment", options: equipmentOptions, selection: $selectedEquipment, animation: animation)
+            }
+
+            if !durationOptions.isEmpty {
+                FilterSection(title: "Duration", options: durationOptions, selection: $selectedDuration, animation: animation)
+            }
+
+            if !focusOptions.isEmpty {
+                FilterSection(title: "Focus", options: focusOptions, selection: $selectedFocus, animation: animation)
+            }
+        }
+    }
+}
+
+private struct FilterSection: View {
+    let title: String
+    let options: [String]
+    @Binding var selection: String?
+    let animation: Animation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    FilterChip(title: "All", isSelected: selection == nil) {
+                        withAnimation(animation) { selection = nil }
+                    }
+
+                    ForEach(options, id: \.self) { option in
+                        FilterChip(title: option, isSelected: selection == option) {
+                            withAnimation(animation) { selection = selection == option ? nil : option }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct FilterChip: View {
+    let title: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule().fill(
+                        isSelected ? AtlasTheme.gradient : AtlasTheme.cardFill
+                    )
+                )
+                .foregroundStyle(isSelected ? Color.white : .secondary)
+        }
+        .buttonStyle(.plain)
     }
 }
 
