@@ -187,8 +187,8 @@ struct WeeklyPlannerView: View {
     }
 }
 
-private struct PlannerToast: Identifiable {
-    enum Style {
+private struct PlannerToast: Identifiable, Equatable {
+    enum Style: Equatable {
         case success
         case error
     }
