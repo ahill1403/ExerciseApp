@@ -38,57 +38,57 @@ final class StartWorkoutViewModel: ObservableObject {
         TemplateInfo(
             name: "Foundations Strength",
             area: .strength,
-            focus: "Strength",
-            duration: "45 min",
-            equipment: "Dumbbells + bench",
+            focus: "Push",
+            duration: "40-50 mins",
+            equipment: "Gym",
             summary: "Balanced pushes, pulls and core finish to build full-body strength."
         ),
         TemplateInfo(
             name: "Upper Body Push",
             area: .strength,
-            focus: "Chest & Shoulders",
-            duration: "35 min",
-            equipment: "Bench + dumbbells",
+            focus: "Push",
+            duration: "30-40 mins",
+            equipment: "Gym",
             summary: "Superset pressing variations with accessory triceps work."
         ),
         TemplateInfo(
             name: "Lower Body Strength",
             area: .strength,
-            focus: "Legs & Glutes",
-            duration: "40 min",
-            equipment: "Barbell or dumbbells",
+            focus: "Legs",
+            duration: "40-50 mins",
+            equipment: "Gym",
             summary: "Squat, hinge and lunge sequence to drive lower-body power."
         ),
         TemplateInfo(
             name: "Mobility Reset",
             area: .mobility,
-            focus: "Mobility",
-            duration: "20 min",
-            equipment: "Mat + foam roller",
+            focus: "Pull",
+            duration: "20-30 mins",
+            equipment: "Home",
             summary: "Gentle flow to open tight hips, spine and shoulders."
         ),
         TemplateInfo(
             name: "Interval Ignite",
             area: .hiit,
-            focus: "HIIT",
-            duration: "25 min",
-            equipment: "Treadmill or open space",
+            focus: "Pull",
+            duration: "20-30 mins",
+            equipment: "Running Shoes",
             summary: "Alternating sprint and recovery blocks for conditioning."
         ),
         TemplateInfo(
             name: "Power Circuit",
             area: .power,
-            focus: "Explosive Power",
-            duration: "30 min",
-            equipment: "Kettlebell + medicine ball",
+            focus: "Push",
+            duration: "30-40 mins",
+            equipment: "Gym",
             summary: "Dynamic jumps and loaded power drills to train speed."
         ),
         TemplateInfo(
             name: "Recovery Walk",
             area: .neat,
-            focus: "NEAT / LISS",
-            duration: "30 min",
-            equipment: "Comfortable shoes",
+            focus: "Legs",
+            duration: "30-40 mins",
+            equipment: "Running Shoes",
             summary: "Guided brisk walk with posture resets and breathing cues."
         )
     ]

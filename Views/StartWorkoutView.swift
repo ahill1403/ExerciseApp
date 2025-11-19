@@ -285,7 +285,7 @@ private extension StartWorkoutView {
 
 private struct CustomWorkoutBuilderSheet: View {
     @State private var searchText = ""
-    @State private var selectedArea: FitnessArea?
+    @State private var selectedTarget: String?
     @State private var selectedEquipment: String?
     @State private var selections: Set<String>
 
@@ -300,16 +300,25 @@ private struct CustomWorkoutBuilderSheet: View {
 
     private var allWorkouts: [WorkoutDefinition] { WorkoutCatalog.shared.all }
 
-    private var equipmentOptions: [String] {
-        Array(Set(allWorkouts.map(\.equipment))).sorted()
+    private var equipmentOptions: [String] { ["Home", "Gym", "Running Shoes"] }
+
+    private var targetMuscleOptions: [String] {
+        Array(Set(allWorkouts.flatMap { $0.targetMuscles.map { $0.capitalized } })).sorted()
     }
 
     private var filteredWorkouts: [WorkoutDefinition] {
         let searchTerm = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return allWorkouts.filter { workout in
-            (selectedArea == nil || workout.area == selectedArea) &&
-            (selectedEquipment == nil || workout.equipment == selectedEquipment) &&
-            (searchTerm.isEmpty || workout.name.lowercased().contains(searchTerm) || workout.summary.lowercased().contains(searchTerm))
+            let matchesTarget = selectedTarget.map { target in
+                workout.targetMuscles.contains { $0.lowercased() == target.lowercased() }
+            } ?? true
+            let matchesEquipment = selectedEquipment == nil || workout.equipmentCategory == selectedEquipment
+            let matchesSearch = searchTerm.isEmpty
+                || workout.name.lowercased().contains(searchTerm)
+                || workout.summary.lowercased().contains(searchTerm)
+                || workout.targetMuscles.contains { $0.lowercased().contains(searchTerm) }
+
+            return matchesTarget && matchesEquipment && matchesSearch
         }
         .sorted { $0.name < $1.name }
     }
@@ -326,21 +335,21 @@ private struct CustomWorkoutBuilderSheet: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
 
-                    TemplateSearchField(text: $searchText)
+                    TemplateSearchField(text: $searchText, placeholder: "Search workouts or muscles")
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Focus area")
+                        Text("Target muscle")
                             .font(.caption.weight(.semibold))
                             .foregroundColor(.secondary)
 
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 10) {
-                                FilterChip(title: "All", isSelected: selectedArea == nil) {
-                                    selectedArea = nil
+                                FilterChip(title: "All", isSelected: selectedTarget == nil) {
+                                    selectedTarget = nil
                                 }
-                                ForEach(FitnessArea.allCases, id: \.self) { area in
-                                    FilterChip(title: area.displayName, isSelected: selectedArea == area) {
-                                        selectedArea = selectedArea == area ? nil : area
+                                ForEach(targetMuscleOptions, id: \.self) { muscle in
+                                    FilterChip(title: muscle, isSelected: selectedTarget == muscle) {
+                                        selectedTarget = selectedTarget == muscle ? nil : muscle
                                     }
                                 }
                             }
@@ -381,7 +390,7 @@ private struct CustomWorkoutBuilderSheet: View {
                                                 Text(workout.summary)
                                                     .font(.caption)
                                                     .foregroundColor(.secondary)
-                                                Text(workout.equipment)
+                                                Text(workout.equipmentCategory)
                                                     .font(.caption2)
                                                     .foregroundColor(.secondary)
                                             }
@@ -426,7 +435,7 @@ private struct CustomWorkoutBuilderSheet: View {
         }
         .onAppear {
             searchText = ""
-            selectedArea = nil
+            selectedTarget = nil
             selectedEquipment = nil
         }
     }
@@ -453,17 +462,11 @@ private struct TemplatePickerSheet: View {
         GridItem(.flexible(), spacing: 14)
     ]
 
-    private var equipmentOptions: [String] {
-        Array(Set(templates.map(\.equipment))).sorted()
-    }
+    private let equipmentOptions: [String] = ["Home", "Gym", "Running Shoes"]
 
-    private var durationOptions: [String] {
-        Array(Set(templates.map(\.duration))).sorted()
-    }
+    private let durationOptions: [String] = ["20-30 mins", "30-40 mins", "40-50 mins", "50-60 mins"]
 
-    private var focusOptions: [String] {
-        Array(Set(templates.map(\.focus))).sorted()
-    }
+    private let focusOptions: [String] = ["Push", "Pull", "Legs"]
 
     private var filteredTemplates: [StartWorkoutViewModel.TemplateInfo] {
         templates.filter { template in
@@ -584,12 +587,13 @@ private struct TemplatePickerSheet: View {
 
 private struct TemplateSearchField: View {
     @Binding var text: String
+    var placeholder: String = "Search templates"
 
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.secondary)
-            TextField("Search templates", text: $text)
+            TextField(placeholder, text: $text)
                 .textInputAutocapitalization(.words)
         }
         .padding(.horizontal, 14)
