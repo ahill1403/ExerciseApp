@@ -274,18 +274,18 @@ struct WorkoutSessionView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ForEach(Array(vm.todaysWorkouts.enumerated()), id: \.offset) { index, workout in
                         if let exercise = vm.exercise(for: workout.id) {
-                                ExerciseLoggingCard(
-                                    workout: workout,
-                                    exercise: exercise,
-                                    targetSetCount: vm.targetSetCount(for: workout.id),
-                                    isCurrent: index == vm.currentWorkoutIndex,
-                                    isCompleted: vm.isCompleted(workout.id),
-                                    isReadyForCompletion: vm.isReadyForCompletion(workout.id),
-                                    isSetCompleted: { vm.isSetCompleted($0) },
-                                    onSelect: {
-                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                                            vm.selectWorkout(with: workout.id)
-                                        }
+                            ExerciseLoggingCard(
+                                workout: workout,
+                                exercise: exercise,
+                                targetSetCount: vm.targetSetCount(for: workout.id),
+                                isCurrent: index == vm.currentWorkoutIndex,
+                                isCompleted: vm.isCompleted(workout.id),
+                                isReadyForCompletion: vm.isReadyForCompletion(workout.id),
+                                isSetCompleted: { vm.isSetCompleted($0) },
+                                onSelect: {
+                                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                        vm.selectWorkout(with: workout.id)
+                                    }
                                 },
                                 onToggleComplete: {
                                     withAnimation(.easeInOut(duration: 0.25)) {
@@ -325,11 +325,11 @@ struct WorkoutSessionView: View {
                 }
                 .animation(.spring(response: 0.32, dampingFraction: 0.84), value: vm.todaysWorkouts)
                 .animation(.spring(response: 0.32, dampingFraction: 0.84), value: vm.currentWorkoutIndex)
-
+                
                 Text("Log reps and weight within each card. Mark sets complete as you go to keep momentum.")
                     .font(.footnote)
                     .foregroundColor(.secondary)
-
+                
                 if showSetManagerCard,
                    let workout = currentWorkoutDefinition,
                    let exercise = currentExerciseEntry {
@@ -360,24 +360,24 @@ private struct ExerciseLoggingCard: View {
     var onToggleSetCompletion: (_ setID: UUID) -> Void
     var onEditSet: (Int, SetEntry) -> Void
     var onManageSets: () -> Void
-
+    
     private var plannedRows: Int {
         if shouldShowInputRow {
             return max(targetSetCount ?? 0, exercise.sets.count + 1)
         }
         return exercise.sets.count
     }
-
+    
     private var shouldShowInputRow: Bool {
         !(isCompleted || isReadyForCompletion)
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             header
-
+            
             Divider().opacity(0.08)
-
+            
             VStack(spacing: 12) {
                 ForEach(0..<plannedRows, id: \.self) { index in
                     if index < exercise.sets.count {
@@ -398,7 +398,7 @@ private struct ExerciseLoggingCard: View {
                     }
                 }
             }
-
+            
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -407,19 +407,19 @@ private struct ExerciseLoggingCard: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
     }
-
+    
     private var cardFill: some ShapeStyle {
         isCurrent
         ? AnyShapeStyle(AtlasTheme.gradient.opacity(0.18))
         : AnyShapeStyle(AtlasTheme.cardFill)
     }
-
+    
     private var cardStroke: some ShapeStyle {
         isCurrent
         ? AnyShapeStyle(AtlasTheme.gradient)
         : AnyShapeStyle(AtlasTheme.border)
     }
-
+    
     @ViewBuilder
     private var header: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -435,7 +435,7 @@ private struct ExerciseLoggingCard: View {
                             .foregroundColor(AtlasTheme.accentGreen)
                     }
                 }
-
+                
                 HStack(spacing: 8) {
                     Text(workout.area.displayName)
                         .font(.caption.weight(.semibold))
@@ -447,13 +447,13 @@ private struct ExerciseLoggingCard: View {
                         .foregroundColor(.secondary)
                     Spacer(minLength: 0)
                 }
-
+                
                 Text(workout.summary)
                     .font(.footnote)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-
+            
             Button(action: onToggleComplete) {
                 Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
                     .font(.title2.weight(.semibold))
@@ -468,12 +468,12 @@ private struct SetInputRow: View {
     let index: Int
     let previousSet: SetEntry?
     var onLog: (_ reps: Int, _ weight: Double, _ units: Units) -> Void
-
+    
     @State private var reps: Int
     @State private var weight: Double
     @State private var units: Units
     @State private var isConfirming = false
-
+    
     init(index: Int, previousSet: SetEntry?, onLog: @escaping (_ reps: Int, _ weight: Double, _ units: Units) -> Void) {
         self.index = index
         self.previousSet = previousSet
@@ -482,7 +482,7 @@ private struct SetInputRow: View {
         _weight = State(initialValue: previousSet?.weight ?? 100)
         _units = State(initialValue: previousSet?.units ?? .lbs)
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center) {
@@ -492,7 +492,7 @@ private struct SetInputRow: View {
                 Spacer()
                 logButton
             }
-
+            
             HStack(spacing: 12) {
                 CompactIntAdjuster(title: "Reps", value: $reps, range: 1...100)
                 CompactDoubleAdjuster(title: "Weight", value: $weight, step: 5)
@@ -506,7 +506,7 @@ private struct SetInputRow: View {
                 .stroke(AtlasTheme.border, lineWidth: 1)
         )
     }
-
+    
     private var logButton: some View {
         Button {
             withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
@@ -541,7 +541,7 @@ private struct LoggedSetSummaryRow: View {
     let isCompleted: Bool
     var onToggleComplete: () -> Void
     var onEdit: () -> Void
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .center) {
@@ -562,7 +562,7 @@ private struct LoggedSetSummaryRow: View {
                 }
                 .buttonStyle(.plain)
             }
-
+            
             HStack(spacing: 10) {
                 Text("\(set.reps) reps")
                     .font(.caption.weight(.semibold))
@@ -582,7 +582,7 @@ private struct LoggedSetSummaryRow: View {
                 .stroke(isCompleted ? AnyShapeStyle(AtlasTheme.accentGreen.opacity(0.6)) : AnyShapeStyle(AtlasTheme.border), lineWidth: 1)
         )
     }
-
+    
     private var weightText: String {
         let weightValue: String
         if set.weight.truncatingRemainder(dividingBy: 1) == 0 {
@@ -601,24 +601,24 @@ private struct AddExerciseSheet: View {
     let favorites: [WorkoutDefinition]
     var onAddDefinition: (WorkoutDefinition) -> Void
     var onAddCustom: () -> Void
-
+    
     @Environment(\.dismiss) private var dismiss
-
+    
     @State private var searchText: String = ""
     @State private var selectedArea: FitnessArea? = nil
     @State private var selectedEquipment: String? = nil
-
+    
     private var filteredCatalog: [WorkoutDefinition] {
         var results = catalog
-
+        
         if let area = selectedArea {
             results = results.filter { $0.area == area }
         }
-
+        
         if let equipment = selectedEquipment {
             results = results.filter { $0.equipment.caseInsensitiveCompare(equipment) == .orderedSame }
         }
-
+        
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if !query.isEmpty {
             results = results.filter { definition in
@@ -627,23 +627,23 @@ private struct AddExerciseSheet: View {
                 || definition.equipment.lowercased().contains(query)
             }
         }
-
+        
         return results
             .sorted { lhs, rhs in
                 if lhs.area == rhs.area { return lhs.name < rhs.name }
                 return lhs.area.rawValue < rhs.area.rawValue
             }
     }
-
+    
     private var equipmentOptions: [String] {
         Array(Set(catalog.map { $0.equipment })).sorted()
     }
-
+    
     var body: some View {
         NavigationStack {
             List {
                 filterSection
-
+                
                 if !favorites.isEmpty {
                     Section("Favorites") {
                         ForEach(favorites, id: \.id) { definition in
@@ -651,7 +651,7 @@ private struct AddExerciseSheet: View {
                         }
                     }
                 }
-
+                
                 if !recents.isEmpty {
                     Section("Recent") {
                         ForEach(recents, id: \.id) { definition in
@@ -659,13 +659,13 @@ private struct AddExerciseSheet: View {
                         }
                     }
                 }
-
+                
                 Section("All Exercises") {
                     ForEach(filteredCatalog, id: \.id) { definition in
                         exerciseButton(for: definition)
                     }
                 }
-
+                
                 manualEntrySection
             }
             .listStyle(.insetGrouped)
@@ -676,7 +676,7 @@ private struct AddExerciseSheet: View {
             .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search exercises")
         }
     }
-
+    
     private var manualEntrySection: some View {
         Section("Manual Entry") {
             TextField("e.g., Bench Press", text: $name)
@@ -689,7 +689,7 @@ private struct AddExerciseSheet: View {
             .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         }
     }
-
+    
     private var filterSection: some View {
         Section("Filters") {
             VStack(alignment: .leading, spacing: 12) {
@@ -706,14 +706,14 @@ private struct AddExerciseSheet: View {
                     }
                     .padding(.vertical, 6)
                 }
-
+                
                 if !equipmentOptions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 10) {
                             filterChip(title: "All Equipment", isSelected: selectedEquipment == nil) {
                                 selectedEquipment = nil
                             }
-
+                            
                             ForEach(equipmentOptions, id: \.self) { equipment in
                                 filterChip(title: equipment, isSelected: selectedEquipment == equipment) {
                                     selectedEquipment = (selectedEquipment == equipment) ? nil : equipment
@@ -727,22 +727,32 @@ private struct AddExerciseSheet: View {
             .padding(.vertical, 4)
         }
     }
-
+    
     private func filterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        let fillStyle: AnyShapeStyle =
+            isSelected
+            ? AnyShapeStyle(AtlasTheme.gradient.opacity(0.2))
+            : AnyShapeStyle(AtlasTheme.cardFill)
+
+        let strokeStyle: AnyShapeStyle =
+            isSelected
+            ? AnyShapeStyle(AtlasTheme.accentGreen)
+            : AnyShapeStyle(AtlasTheme.border)
+
+        return Button(action: action) {
             Text(title)
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .background(isSelected ? AtlasTheme.gradient.opacity(0.2) : AtlasTheme.cardFill, in: Capsule())
+                .background(fillStyle, in: Capsule())
                 .overlay(
                     Capsule()
-                        .stroke(isSelected ? AtlasTheme.accentGreen : AtlasTheme.border, lineWidth: 1)
+                        .stroke(strokeStyle, lineWidth: 1)
                 )
         }
         .buttonStyle(.plain)
     }
-
+    
     private func exerciseButton(for definition: WorkoutDefinition) -> some View {
         Button {
             onAddDefinition(definition)
@@ -761,11 +771,11 @@ private struct AddExerciseSheet: View {
                         .padding(.vertical, 6)
                         .background(AtlasTheme.cardFill, in: Capsule())
                 }
-
+                
                 Text(definition.summary)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
-
+                
                 HStack(spacing: 8) {
                     Label(definition.equipment, systemImage: "dumbbell")
                         .font(.caption)
@@ -1326,9 +1336,9 @@ private struct RestTimerOverlay: View {
     let duration: TimeInterval
     var onCancel: (_ elapsed: TimeInterval) -> Void
     var onReachedZero: () -> Void
-
+    
     @State private var completionDispatched = false
-
+    
     var body: some View {
         TimelineView(.animation(minimumInterval: 0.016, paused: false)) { timeline in
             let remaining = endDate.timeIntervalSince(timeline.date)
@@ -1338,7 +1348,7 @@ private struct RestTimerOverlay: View {
             let minutes = secondsRemaining / 60
             let seconds = secondsRemaining % 60
             let progress = max(0, min(1, remaining / duration))
-
+            
             ZStack {
                 Color.black.opacity(0.45).ignoresSafeArea()
                 BreathingBackground()
@@ -1365,24 +1375,24 @@ private struct RestTimerOverlay: View {
                                 y: 4
                             )
                             .animation(.linear(duration: 0.2), value: progress)
-                      }
-                      .frame(width: 200, height: 200)
-
+                    }
+                    .frame(width: 200, height: 200)
+                    
                     Text("\(isOvertime ? "-" : "")\(minutes):\(String(format: "%02d", seconds))")
                         .font(.system(size: 44, weight: .semibold, design: .rounded))
                         .monospacedDigit()
                         .foregroundColor(isOvertime ? .red : AtlasTheme.textPrimary)
                         .contentTransition(.numericText())
                         .animation(.spring(response: 0.45, dampingFraction: 0.82), value: secondsRemaining)
-
+                    
                     Text(isOvertime ? "Rest window passed — let's move" : (progress < 0.7 ? "Breathe deep — stay loose" : "Almost time to move"))
                         .font(.subheadline)
                         .foregroundStyle(isOvertime ? .red.opacity(0.8) : .secondary)
-
+                    
                     Button("Finish Rest") {
                         onCancel(max(0, Date().timeIntervalSince(startDate)))
                     }
-                        .buttonStyle(AtlasButtonStyle())
+                    .buttonStyle(AtlasButtonStyle())
                 }
                 .padding(32)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 32, style: .continuous))
@@ -1400,7 +1410,7 @@ private struct RestTimerOverlay: View {
         .onAppear { completionDispatched = false }
         .onChange(of: endDate) { _, _ in completionDispatched = false }
     }
-
+    
     private func timerStroke(forOvertime isOvertime: Bool) -> some ShapeStyle {
         if isOvertime {
             return LinearGradient(colors: [.red, .orange], startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -1420,7 +1430,7 @@ private struct BreathingBackground: View {
                 .scaleEffect(breathe ? 1.14 : 0.9)
                 .blur(radius: breathe ? 44 : 16)
                 .opacity(0.42)
-
+            
             Circle()
                 .fill(AtlasTheme.gradientAlt)
                 .frame(width: 260, height: 260)

@@ -393,7 +393,12 @@ private struct CustomWorkoutBuilderSheet: View {
                                         .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                                         .overlay(
                                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                .stroke(selections.contains(workout.id) ? AtlasTheme.accentGreen.opacity(0.3) : AtlasTheme.border, lineWidth: 1)
+                                                .stroke(
+                                                    selections.contains(workout.id)
+                                                    ? AnyShapeStyle(AtlasTheme.accentGreen.opacity(0.3))
+                                                    : AnyShapeStyle(AtlasTheme.border),
+                                                    lineWidth: 1
+                                                )
                                         )
                                     }
                                     .buttonStyle(.plain)
