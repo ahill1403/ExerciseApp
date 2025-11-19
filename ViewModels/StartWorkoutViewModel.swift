@@ -117,7 +117,7 @@ final class StartWorkoutViewModel: ObservableObject {
     init() {
         refreshPlanSuggestion()
     }
-    
+
     func start(template: String) {
         selectedTemplate = template
         isLogging = true
@@ -136,6 +136,22 @@ final class StartWorkoutViewModel: ObservableObject {
         } else {
             todaysWorkouts = fallbackWorkouts(for: template)
         }
+        bindExercisesToWorkouts()
+    }
+
+    func startCustomSession(with workouts: [WorkoutDefinition] = []) {
+        selectedTemplate = "Custom"
+        isLogging = true
+        exercises = []
+        startTime = Date()
+        completedWorkoutIDs = []
+        completedSetIDs = []
+        workoutsReadyForCompletion = []
+        restDurations = []
+        currentWorkoutIndex = 0
+        setTargetCache = [:]
+        todaysWorkouts = workouts
+        workoutExerciseLookup = [:]
         bindExercisesToWorkouts()
     }
 

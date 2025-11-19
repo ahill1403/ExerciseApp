@@ -17,6 +17,7 @@ struct StartWorkoutView: View {
     @State private var expandedTemplateID: StartWorkoutViewModel.TemplateInfo.ID?
     @State private var showAllTemplates = false
     @State private var showTemplatePicker = false
+    @State private var showCustomBuilder = false
 
     @State private var completionMessage: String?
 
@@ -83,22 +84,30 @@ struct StartWorkoutView: View {
             }
         }
         .sheet(isPresented: $showTemplatePicker) {
-            TemplatePickerSheet(
-                templates: vm.templates,
-                expandedTemplateID: $expandedTemplateID,
-                showAllTemplates: $showAllTemplates,
-                onStartTemplate: { name in
-                    vm.start(template: name)
-                    expandedTemplateID = nil
-                    showTemplatePicker = false
-                },
-                onStartCustom: {
-                    vm.start(template: "Custom")
-                    expandedTemplateID = nil
-                    showTemplatePicker = false
+                TemplatePickerSheet(
+                    templates: vm.templates,
+                    expandedTemplateID: $expandedTemplateID,
+                    showAllTemplates: $showAllTemplates,
+                    onStartTemplate: { name in
+                        vm.start(template: name)
+                        expandedTemplateID = nil
+                        showTemplatePicker = false
+                    },
+                    onStartCustom: {
+                        expandedTemplateID = nil
+                        showTemplatePicker = false
+                        DispatchQueue.main.async {
+                            showCustomBuilder = true
+                        }
+                    }
+                )
+            }
+            .sheet(isPresented: $showCustomBuilder) {
+                CustomWorkoutBuilderSheet(selectedWorkouts: []) { workouts in
+                    vm.startCustomSession(with: workouts)
+                    showCustomBuilder = false
                 }
-            )
-        }
+            }
     }
 
     // MARK: - Home (pre-session) content
@@ -270,6 +279,150 @@ private extension StartWorkoutView {
                 completionMessage = nil
             }
             vm.lastCompletionMessage = nil
+        }
+    }
+}
+
+private struct CustomWorkoutBuilderSheet: View {
+    @State private var searchText = ""
+    @State private var selectedArea: FitnessArea?
+    @State private var selectedEquipment: String?
+    @State private var selections: Set<String>
+
+    var onStart: ([WorkoutDefinition]) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    init(selectedWorkouts: [WorkoutDefinition], onStart: @escaping ([WorkoutDefinition]) -> Void) {
+        self.onStart = onStart
+        _selections = State(initialValue: Set(selectedWorkouts.map(\.id)))
+    }
+
+    private var allWorkouts: [WorkoutDefinition] { WorkoutCatalog.shared.all }
+
+    private var equipmentOptions: [String] {
+        Array(Set(allWorkouts.map(\.equipment))).sorted()
+    }
+
+    private var filteredWorkouts: [WorkoutDefinition] {
+        let searchTerm = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return allWorkouts.filter { workout in
+            (selectedArea == nil || workout.area == selectedArea) &&
+            (selectedEquipment == nil || workout.equipment == selectedEquipment) &&
+            (searchTerm.isEmpty || workout.name.lowercased().contains(searchTerm) || workout.summary.lowercased().contains(searchTerm))
+        }
+        .sorted { $0.name < $1.name }
+    }
+
+    private var selectedWorkouts: [WorkoutDefinition] {
+        allWorkouts.filter { selections.contains($0.id) }.sorted { $0.name < $1.name }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Pick the exercises you want to log. You can still add or remove items once the session starts.")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    TemplateSearchField(text: $searchText)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Focus area")
+                            .font(.caption.weight(.semibold))
+                            .foregroundColor(.secondary)
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 10) {
+                                FilterChip(title: "All", isSelected: selectedArea == nil) {
+                                    selectedArea = nil
+                                }
+                                ForEach(FitnessArea.allCases, id: \.self) { area in
+                                    FilterChip(title: area.displayName, isSelected: selectedArea == area) {
+                                        selectedArea = selectedArea == area ? nil : area
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    TemplateFilters(
+                        equipmentOptions: equipmentOptions,
+                        durationOptions: [],
+                        focusOptions: [],
+                        selectedEquipment: $selectedEquipment,
+                        selectedDuration: .constant(nil),
+                        selectedFocus: .constant(nil)
+                    )
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Exercises")
+                            .font(.headline)
+                        if filteredWorkouts.isEmpty {
+                            Text("No exercises match your filters yet.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        } else {
+                            LazyVStack(spacing: 12) {
+                                ForEach(filteredWorkouts) { workout in
+                                    Button {
+                                        if selections.contains(workout.id) {
+                                            selections.remove(workout.id)
+                                        } else {
+                                            selections.insert(workout.id)
+                                        }
+                                    } label: {
+                                        HStack(alignment: .top, spacing: 12) {
+                                            VStack(alignment: .leading, spacing: 6) {
+                                                Text(workout.name)
+                                                    .font(.subheadline.weight(.semibold))
+                                                    .foregroundColor(AtlasTheme.textPrimary)
+                                                Text(workout.summary)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                Text(workout.equipment)
+                                                    .font(.caption2)
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            Spacer(minLength: 0)
+                                            Image(systemName: selections.contains(workout.id) ? "checkmark.circle.fill" : "circle")
+                                                .foregroundColor(selections.contains(workout.id) ? AtlasTheme.accentGreen : .secondary)
+                                        }
+                                        .padding(14)
+                                        .background(AtlasTheme.cardFill, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                .stroke(selections.contains(workout.id) ? AtlasTheme.accentGreen.opacity(0.3) : AtlasTheme.border, lineWidth: 1)
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                    }
+
+                    Button {
+                        onStart(selectedWorkouts)
+                        dismiss()
+                    } label: {
+                        Label("Start custom session", systemImage: "play.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(AtlasButtonStyle())
+                }
+                .padding(20)
+            }
+            .navigationTitle("Build your own")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+            }
+        }
+        .onAppear {
+            searchText = ""
+            selectedArea = nil
+            selectedEquipment = nil
         }
     }
 }
