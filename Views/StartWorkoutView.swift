@@ -197,10 +197,34 @@ struct StartWorkoutView: View {
                     }
                 }
             } else {
-                Text("Set at least one training day in Weekly Planner to unlock a daily recommendation here.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 10) {
+                    NavigationLink {
+                        WeeklyPlannerView()
+                    } label: {
+                        Label("Open Weekly Planner", systemImage: "calendar.badge.plus")
+                    }
+                    .buttonStyle(AtlasButtonStyle())
+
+                    Button {
+                        withAnimation(motion.primary) {
+                            showTemplatePicker = true
+                        }
+                    } label: {
+                        Label("Pick a template now", systemImage: "sparkles")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .buttonStyle(.plain)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(AtlasTheme.cardFill.opacity(0.85))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(AtlasTheme.border, lineWidth: 1)
+                    )
+                }
             }
 
             Text("Manage your schedule anytime from the Plan tab.")
